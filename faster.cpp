@@ -55,6 +55,8 @@ uint triIdx[N];
 BVHNode* bvhNode = 0;
 uint rootNodeIdx = 0, nodesUsed = 2;
 
+float intersections{ 0.0f };
+
 // functions
 
 void IntersectTri( Ray& ray, const Tri& tri )
@@ -103,6 +105,7 @@ void IntersectBVH( Ray& ray )
 	uint stackPtr = 0;
 	while (1)
 	{
+		++intersections;
 		if (node->isLeaf())
 		{
 			for (uint i = 0; i < node->triCount; i++)
@@ -246,6 +249,31 @@ void Subdivide( uint nodeIdx )
 	Subdivide( rightChildIdx );
 }
 
+float remap(float x, float inMin, float inMax, float outMin, float outMax) 
+{
+	float t = (x - inMin) / (inMax - inMin);
+	return outMin + (outMax - outMin) * t;
+}
+
+float3 remapToGreenRed()
+{
+	float3 red(1, 0, 0), green(0, 0.8, 0);
+
+	// Realistically, one ray isn't intersecting more than 80 objects (checked outputs)
+	float maxIntersections = 80.0f; // sizeof(BVHNode)* N * 2 + 1;
+	float minIntersections = 0.0f;
+	float a = remap(intersections, minIntersections, maxIntersections, 0.0f, 1.0f);
+
+	float3 color = red * a + green * (1.0f - a);
+	return color * 255;
+}
+
+
+uint createRGB(int r, int g, int b)
+{
+	return ((r & 0xff) << 16) + ((g & 0xff) << 8) + (b & 0xff);
+}
+
 void FasterRaysApp::Init()
 {
 	FILE* file = fopen( "assets/unity.tri", "r" );
@@ -282,11 +310,17 @@ void FasterRaysApp::Tick( float deltaTime )
 			// define the ray in worldspace
 			ray.O = float3( -1.5f, -0.2f, -2.5f );
 			ray.D = normalize( pixelPos - ray.O ), ray.t = 1e30f;
-			// calculare reciprocal ray directions to speedup AABB intersections
+			// calculate reciprocal ray directions to speedup AABB intersections
 			ray.rD = float3( 1 / ray.D.x, 1 / ray.D.y, 1 / ray.D.z );
 			IntersectBVH( ray );
-			uint c = 500 - (int)(ray.t * 42);
-			if (ray.t < 1e30f) screen->Plot( x + u, y + v, c * 0x10101 );
+
+			//uint c = 500 - (int)(ray.t * 42);
+			//if (ray.t < 1e30f) screen->Plot( x + u, y + v, c * 0x10101 );
+
+			float3 finalColor = remapToGreenRed();
+			screen->Plot(x + u, y + v, createRGB(finalColor.x, finalColor.y, finalColor.z));
+			// reset value of intersections for next pixel
+			intersections = 0;
 		}
 	}
 	float elapsed = t.elapsed() * 1000;
