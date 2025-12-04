@@ -3,22 +3,24 @@
 // -----------------------------------------------------------
 // Initialize the renderer
 // -----------------------------------------------------------
+
+
 void Renderer::Init()
 {
 	// create fp32 rgb pixel buffer to render to
 	accumulator = (float4*)MALLOC64( SCRWIDTH * SCRHEIGHT * 16 );
 	memset( accumulator, 0, SCRWIDTH * SCRHEIGHT * 16 );
+	bvh.Build();
 }
 
 // -----------------------------------------------------------
 // Evaluate light transport
 // -----------------------------------------------------------
-float3 Renderer::Trace( Ray& ray )
+float3 Renderer::GetColor( Ray& ray )
 {
-	scene.FindNearest( ray );
 	if (ray.objIdx == -1) return 0; // or a fancy sky color
 	float3 I = ray.O + ray.t * ray.D;
-	float3 N = scene.GetNormal( ray.objIdx, I, ray.D );
+	float3 n = scene.GetNormal( ray.objIdx, I, ray.D );
 	float3 albedo = scene.GetAlbedo( ray.objIdx, I );
 	/* visualize normal */ // return (N + 1) * 0.5f;
 	/* visualize distance */ // return 0.1f * float3( ray.t, ray.t, ray.t );
@@ -33,6 +35,7 @@ void Renderer::Tick( float deltaTime )
 	// animation
 	if (animating) scene.SetTime( anim_time += deltaTime * 0.002f );
 	// pixel loop
+	Ray ray;
 	Timer t;
 	// lines are executed as OpenMP parallel tasks (disabled in DEBUG)
 #pragma omp parallel for schedule(dynamic)
@@ -41,7 +44,10 @@ void Renderer::Tick( float deltaTime )
 		// trace a primary ray for each pixel on the line
 		for (int x = 0; x < SCRWIDTH; x++)
 		{
-			float4 pixel = float4( Trace( camera.GetPrimaryRay( (float)x, (float)y ) ), 0 );
+			// assume BVH  CHANGEEEEEEEEEEEEEEEEE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+			ray = camera.GetPrimaryRay((float)x, (float)y);
+			bvh.Trace(ray, bvh.rootNodeIdx);
+			float4 pixel = float4(GetColor(ray), 0 );
 			// translate accumulator contents to rgb32 pixels
 			screen->pixels[x + y * SCRWIDTH] = RGBF32_to_RGB8( &pixel );
 			accumulator[x + y * SCRWIDTH] = pixel;
