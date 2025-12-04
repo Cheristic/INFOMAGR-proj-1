@@ -1,4 +1,5 @@
 #include "precomp.h"
+//#include "accel.h"
 
 // -----------------------------------------------------------
 // Initialize the renderer
