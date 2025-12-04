@@ -1,5 +1,6 @@
 #pragma once
 #include "bvh.cpp"
+#include "kdtree.cpp"
 
 namespace Tmpl8
 {
@@ -27,7 +28,8 @@ public:
 	Camera camera;
 	bool animating = true;
 	float anim_time = 0;
-	BVH bvh;
+	bool useBVH = true;
+	Accel accel;
 };
 
 } // namespace Tmpl8

@@ -1,9 +1,9 @@
 #include "accel.h"
 
-class BVH : public Accel 
+class KDTree : public Accel
 {
 public:
-	void Build() // 
+	void Build()
 	{
 		// populate triangle index array
 		for (int i = 0; i < N; i++) triIdx[i] = i;
@@ -13,70 +13,36 @@ public:
 		// assign all triangles to root node
 		Node& root = nodes[rootNodeIdx];
 		root.leftFirst = 0, root.triCount = N;
-		UpdateNodeBounds(rootNodeIdx);
+		// get bounds
+		root.aabbMin = float3(1e30f);
+		root.aabbMax = float3(-1e30f);
+		for (uint first = root.leftFirst, i = 0; i < root.triCount; i++)
+		{
+			uint leafTriIdx = triIdx[first + i];
+			Tri& leafTri = tri[leafTriIdx];
+			root.aabbMin = fminf(root.aabbMin, leafTri.vertex0),
+			root.aabbMin = fminf(root.aabbMin, leafTri.vertex1),
+			root.aabbMin = fminf(root.aabbMin, leafTri.vertex2),
+			root.aabbMax = fmaxf(root.aabbMax, leafTri.vertex0),
+			root.aabbMax = fmaxf(root.aabbMax, leafTri.vertex1),
+			root.aabbMax = fmaxf(root.aabbMax, leafTri.vertex2);
+		}
 		// subdivide recursively
 		Subdivide(rootNodeIdx);
 	}
 	float3 Trace(Ray& ray, const uint nodeIdx)
-	{
-		Intersect(ray, nodeIdx);
-		Intersection i = ray.hit;
-		if (i.t == 1e34f)
-		{
-			return float3(0);
-		}
-		// calculate texture uv based on barycentrics
-		uint triIdx = i.triIndex;
-		TriEx& tri = triEx[triIdx];
-		Surface* tex = &Surface("../assets/logo.png");
-		float2 uv = i.u * tri.uv1 + i.v * tri.uv2 + (1 - (i.u + i.v)) * tri.uv0;
-		int iu = (int)(uv.x * tex->width) % tex->width;
-		int iv = (int)(uv.y * tex->height) % tex->height;
-		uint texel = tex->pixels[iu + iv * tex->width];
-		float3 albedo = RGB8toRGB32F(texel);
-		// calculate the normal for the intersection
-		float3 Nor = i.u * tri.N1 + i.v * tri.N2 + (1 - (i.u + i.v)) * tri.N0;
-		float3 I = ray.O + i.t * ray.D;
-		// shading
-		// calculate the diffuse reflection in the intersection point
-		float3 lightPos(3, 10, 2);
-		float3 lightColor(150, 150, 120);
-		float3 ambient(0.2f, 0.2f, 0.4f);
-		float3 L = lightPos - I;
-		float dist = length(L);
-		L *= 1.0f / dist;
-		return albedo * (ambient + max(0.0f, dot(N, L)) * lightColor * (1.0f / (dist * dist)));
-	}
-	void Intersect(Ray& ray, const uint nodeIdx)
 	{
 		Node& node = nodes[nodeIdx];
 		if (!IntersectAABB(ray, node.aabbMin, node.aabbMax)) return;
 		if (node.isLeaf())
 		{
 			for (uint i = 0; i < node.triCount; i++)
-				IntersectTri(ray, tri[triIdx[node.leftFirst + i]], triIdx[node.leftFirst + i]);
+				IntersectTri(ray, tri[triIdx[node.leftFirst + i]]);
 		}
 		else
 		{
-			Intersect(ray, node.leftFirst);
-			Intersect(ray, node.leftFirst + 1);
-		}
-	}
-	void UpdateNodeBounds(uint nodeIdx)
-	{
-		Node& node = nodes[nodeIdx];
-		node.aabbMin = float3(1e30f);
-		node.aabbMax = float3(-1e30f);
-		for (uint first = node.leftFirst, i = 0; i < node.triCount; i++)
-		{
-			uint leafTriIdx = triIdx[first + i];
-			Tri& leafTri = tri[leafTriIdx];
-			node.aabbMin = fminf(node.aabbMin, leafTri.vertex0),
-				node.aabbMin = fminf(node.aabbMin, leafTri.vertex1),
-				node.aabbMin = fminf(node.aabbMin, leafTri.vertex2),
-				node.aabbMax = fmaxf(node.aabbMax, leafTri.vertex0),
-				node.aabbMax = fmaxf(node.aabbMax, leafTri.vertex1),
-				node.aabbMax = fmaxf(node.aabbMax, leafTri.vertex2);
+			Trace(ray, node.leftFirst);
+			Trace(ray, node.leftFirst + 1);
 		}
 	}
 	void Subdivide(uint nodeIdx)
@@ -122,11 +88,19 @@ public:
 		nodes[rightChildIdx].triCount = node.triCount - leftCount;
 		node.leftFirst = leftChildIdx;
 		node.triCount = 0;
-		UpdateNodeBounds(leftChildIdx);
-		UpdateNodeBounds(rightChildIdx);
+		UpdateNodeBounds(leftChildIdx, nodeIdx, node.aabbMin[axis], splitPos, axis);
+		UpdateNodeBounds(rightChildIdx, nodeIdx, splitPos, node.aabbMax[axis], axis);
 		// recurse
 		Subdivide(leftChildIdx);
 		Subdivide(rightChildIdx);
 	}
-
+	void UpdateNodeBounds(uint nodeIdx, uint parNodeIdx, float min, float max, int axis)
+	{
+		Node& parNode = nodes[parNodeIdx];
+		Node& node = nodes[nodeIdx];
+		node.aabbMin = parNode.aabbMin;
+		node.aabbMax = parNode.aabbMax;
+		node.aabbMin[axis] = min;
+		node.aabbMax[axis] = max;
+	}
 };
