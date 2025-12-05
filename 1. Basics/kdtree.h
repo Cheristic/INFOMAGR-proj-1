@@ -9,11 +9,14 @@ public:
 	KDTree(const char* objFile, uint* objIdxTracker, const float scale = 1) : Accel(objFile, objIdxTracker, scale) {}
 	void KDTree::Build()
 	{
-		// populate triangle index array
-		for (uint i = 0; i < triCount; i++) triIdx[i] = i;
-		// calculate triangle centroids for partitioning
-		for (uint i = 0; i < triCount; i++)
+		
+		for (uint i = 0; i < triCount; i++) 
+		{
+			// populate triangle index array
+			triIdx[i] = i;
+			// calculate triangle centroids for partitioning
 			tri[i].centroid = (tri[i].vertex0 + tri[i].vertex1 + tri[i].vertex2) * 0.3333f;
+		}
 		// assign all triangles to root node
 		Node& root = nodes[rootNodeIdx];
 		root.leftFirst = 0, root.triCount = triCount;
@@ -24,12 +27,12 @@ public:
 		{
 			uint leafTriIdx = triIdx[first + i];
 			Tri& leafTri = tri[leafTriIdx];
-			root.aabbMin = fminf(root.aabbMin, leafTri.vertex0),
-				root.aabbMin = fminf(root.aabbMin, leafTri.vertex1),
-				root.aabbMin = fminf(root.aabbMin, leafTri.vertex2),
-				root.aabbMax = fmaxf(root.aabbMax, leafTri.vertex0),
-				root.aabbMax = fmaxf(root.aabbMax, leafTri.vertex1),
-				root.aabbMax = fmaxf(root.aabbMax, leafTri.vertex2);
+			root.aabbMin = fminf(root.aabbMin, leafTri.vertex0);
+			root.aabbMin = fminf(root.aabbMin, leafTri.vertex1);
+			root.aabbMin = fminf(root.aabbMin, leafTri.vertex2);
+			root.aabbMax = fmaxf(root.aabbMax, leafTri.vertex0);
+			root.aabbMax = fmaxf(root.aabbMax, leafTri.vertex1);
+			root.aabbMax = fmaxf(root.aabbMax, leafTri.vertex2);
 		}
 		// subdivide recursively
 		Subdivide(rootNodeIdx);

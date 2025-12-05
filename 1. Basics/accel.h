@@ -7,7 +7,7 @@ namespace Tmpl8 {
 	class Accel
 	{
 	public:
-		Accel();
+		Accel() = default;
 		Accel(const char * objFile, uint* objIdxTracker, const float scale = 1)
 		{
 			float3* P = new float3[11042];
