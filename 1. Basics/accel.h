@@ -1,6 +1,5 @@
 #pragma once
 #include "precomp.h"
-#include "scene.h"
 
 
 namespace Tmpl8 {
@@ -8,12 +7,37 @@ namespace Tmpl8 {
 	class Accel
 	{
 	public:
+		Accel();
+		Accel(const char * objFile, uint* objIdxTracker, const float scale = 1)
+		{
+			float3* P = new float3[11042];
+			int UVs = 0, Ns = 0, Ps = 0, a, b, c, d, e, f, g, h, i;
+			FILE* file = fopen(objFile, "r");
+			if (!file) return; // file doesn't exist
+			while (!feof(file))
+			{
+				char line[512] = { 0 };
+				fgets(line, 511, file);
+				if (line[0] == 'v')
+					sscanf(line + 2, "%f %f %f", &P[Ps].x, &P[Ps].y, &P[Ps].z), Ps++;
+				if (line[0] != 'f') continue; else
+					sscanf(line + 2, "%i/%i/%i %i/%i/%i %i/%i/%i",
+						&a, &b, &c, &d, &e, &f, &g, &h, &i);
+				tri[triCount].vertex0 = P[a - 1] * scale;
+				tri[triCount].vertex1 = P[d - 1] * scale;
+				tri[triCount++].vertex2 = P[g - 1] * scale;
+				tri->objIdx = *objIdxTracker++;
+			}
+			fclose(file);
 
+			nodes = (Node*)_aligned_malloc(sizeof(Node) * triCount * 2 + 64, 64);
+			triIdx = new uint[triCount];
+		}
 		void Build();
-		float3 Trace(Ray& ray, const uint nodeIdx);
 		void Subdivide(uint nodeIdx);
+		void Intersect(Ray& ray, uint nodeIdx);
 
-		bool IntersectAABB(Ray& ray, const float3 bmin, const float3 bmax)
+		bool IntersectAABB(Ray& ray, const float3 bmin, const float3 bmax) const
 		{
 			float tx1 = (bmin.x - ray.O.x) / ray.D.x, tx2 = (bmax.x - ray.O.x) / ray.D.x;
 			float tmin = min(tx1, tx2), tmax = max(tx1, tx2);
@@ -21,9 +45,9 @@ namespace Tmpl8 {
 			tmin = max(tmin, min(ty1, ty2)), tmax = min(tmax, max(ty1, ty2));
 			float tz1 = (bmin.z - ray.O.z) / ray.D.z, tz2 = (bmax.z - ray.O.z) / ray.D.z;
 			tmin = max(tmin, min(tz1, tz2)), tmax = min(tmax, max(tz1, tz2));
-			return tmax >= tmin && tmin < ray.hit.t && tmax > 0;
+			return tmax >= tmin && tmin < ray.t && tmax > 0;
 		}
-		void IntersectTri(Ray& ray, const Tri& tri, const uint triIndex)
+		void IntersectTri(Ray& ray, const Tri& tri) const
 		{
 			const float3 edge1 = tri.vertex1 - tri.vertex0;
 			const float3 edge2 = tri.vertex2 - tri.vertex0;
@@ -38,9 +62,7 @@ namespace Tmpl8 {
 			const float v = f * dot(ray.D, q);
 			if (v < 0 || u + v > 1) return;
 			const float t = f * dot(edge2, q);
-			if (t > 0.0001f && t < ray.hit.t)
-				ray.hit.t = t, ray.hit.u = u,
-				ray.hit.v = v, ray.hit.triIndex = triIndex;
+			if (t > 0.0001f && t < ray.t) ray.t = t;
 		}
 		float EvaluateSAH(Node& node, int axis, float pos)
 		{
@@ -70,9 +92,8 @@ namespace Tmpl8 {
 		}
 
 		Tri tri[MAX_TRIS];
-		uint triIdx[MAX_TRIS];
-		TriEx triEx[MAX_TRIS];
-		Node nodes[MAX_TRIS * 2];
+		uint* triIdx = 0;
+		Node* nodes = 0;
 		uint rootNodeIdx = 0, nodesUsed = 1;
 		uint triCount;
 	};

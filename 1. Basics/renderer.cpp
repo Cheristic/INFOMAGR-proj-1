@@ -10,8 +10,18 @@ void Renderer::Init()
 	// create fp32 rgb pixel buffer to render to
 	accumulator = (float4*)MALLOC64( SCRWIDTH * SCRHEIGHT * 16 );
 	memset( accumulator, 0, SCRWIDTH * SCRHEIGHT * 16 );
-	bvh = BVH();
-	kdtree = KDTree();
+}
+
+float3 Renderer::Trace(Ray& ray)
+{
+	scene.FindNearest(ray);
+	if (ray.objIdx == -1) return 0; // or a fancy sky color
+	float3 I = ray.O + ray.t * ray.D;
+	float3 N = scene.GetNormal(ray.objIdx, I, ray.D);
+	float3 albedo = scene.GetAlbedo(ray.objIdx, I);
+	/* visualize normal */ // return (N + 1) * 0.5f;
+	/* visualize distance */ // return 0.1f * float3( ray.t, ray.t, ray.t );
+	/* visualize albedo */ return albedo;
 }
 
 // -----------------------------------------------------------
@@ -31,15 +41,7 @@ void Renderer::Tick( float deltaTime )
 		// trace a primary ray for each pixel on the line
 		for (int x = 0; x < SCRWIDTH; x++)
 		{
-			ray = camera.GetPrimaryRay((float)x, (float)y);
-			float4 pixel;
-			if (useBVH) {
-				pixel = float4(bvh.Trace(ray, bvh.rootNodeIdx), 0);
-			}
-			else {
-				pixel = float4(kdtree.Trace(ray, kdtree.rootNodeIdx), 0);
-			}
-			 
+			float4 pixel = float4(Trace(camera.GetPrimaryRay((float)x, (float)y)), 0);
 			// translate accumulator contents to rgb32 pixels
 			screen->pixels[x + y * SCRWIDTH] = RGBF32_to_RGB8( &pixel );
 			accumulator[x + y * SCRWIDTH] = pixel;

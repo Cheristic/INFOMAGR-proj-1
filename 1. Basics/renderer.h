@@ -1,7 +1,5 @@
 #pragma once
 #include "precomp.h"
-#include "bvh.h"
-#include "kdtree.h"
 
 namespace Tmpl8
 {
@@ -11,6 +9,7 @@ class Renderer : public TheApp
 public:
 	// game flow methods
 	void Init();
+	float3 Trace(Ray& ray);
 	float3 GetColor( Ray& ray );
 	void Tick( float deltaTime );
 	void UI();
@@ -29,9 +28,6 @@ public:
 	Camera camera;
 	bool animating = true;
 	float anim_time = 0;
-	bool useBVH = true;
-	BVH bvh;
-	KDTree kdtree;
 };
 
 } // namespace Tmpl8
