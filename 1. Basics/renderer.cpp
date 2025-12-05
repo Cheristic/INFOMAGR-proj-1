@@ -1,5 +1,4 @@
 #include "precomp.h"
-#include "accel.h"
 
 // -----------------------------------------------------------
 // Initialize the renderer
@@ -11,7 +10,8 @@ void Renderer::Init()
 	// create fp32 rgb pixel buffer to render to
 	accumulator = (float4*)MALLOC64( SCRWIDTH * SCRHEIGHT * 16 );
 	memset( accumulator, 0, SCRWIDTH * SCRHEIGHT * 16 );
-	accel = BVH();
+	bvh = BVH();
+	kdtree = KDTree();
 }
 
 // -----------------------------------------------------------
@@ -32,7 +32,14 @@ void Renderer::Tick( float deltaTime )
 		for (int x = 0; x < SCRWIDTH; x++)
 		{
 			ray = camera.GetPrimaryRay((float)x, (float)y);
-			float4 pixel = float4(accel.Trace(ray, accel.rootNodeIdx), 0 );
+			float4 pixel;
+			if (useBVH) {
+				pixel = float4(bvh.Trace(ray, bvh.rootNodeIdx), 0);
+			}
+			else {
+				pixel = float4(kdtree.Trace(ray, kdtree.rootNodeIdx), 0);
+			}
+			 
 			// translate accumulator contents to rgb32 pixels
 			screen->pixels[x + y * SCRWIDTH] = RGBF32_to_RGB8( &pixel );
 			accumulator[x + y * SCRWIDTH] = pixel;

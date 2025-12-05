@@ -1,9 +1,6 @@
 #pragma once
 
-//#include "precomp.h"
-#include <accel.h>
-
-
+#include "object_tools.h"
 
 namespace Tmpl8 {
 
@@ -11,8 +8,6 @@ namespace Tmpl8 {
 	{
 	public:
 		Object() = default;
-
-		virtual void Intersect(Ray& ray) const;
 
 		virtual bool IsOccluded(const Ray& ray) const { return false; }
 
@@ -26,11 +21,6 @@ namespace Tmpl8 {
 	public:
 		Plane() = default;
 		Plane(int idx, float3 normal, float dist) : Nor(normal), d(dist) {}
-		void Intersect(Ray& ray)
-		{
-			float t = -(dot(ray.O, this->Nor) + this->d) / (dot(ray.D, this->Nor));
-			if (t < ray.hit.t && t > 0) ray.hit.t = t;
-		}
 		float3 GetNormal(const float3 I) const override
 		{
 			return Nor;

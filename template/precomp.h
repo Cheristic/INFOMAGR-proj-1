@@ -1,3 +1,4 @@
+#pragma once
 // Template, IGAD version 3
 // IGAD/NHTV/UU - Jacco Bikker - 2006-2022
 
@@ -78,6 +79,8 @@ using namespace std;
 #define NODEFERWINDOWPOS
 #define NOMCX
 #define NOIME
+#define MAX_TRIS 64
+
 #include "windows.h"
 
 // aligned memory allocations

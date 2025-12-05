@@ -1,6 +1,7 @@
 #pragma once
-#include "bvh.cpp"
-#include "kdtree.cpp"
+#include "precomp.h"
+#include "bvh.h"
+#include "kdtree.h"
 
 namespace Tmpl8
 {
@@ -29,7 +30,8 @@ public:
 	bool animating = true;
 	float anim_time = 0;
 	bool useBVH = true;
-	Accel accel;
+	BVH bvh;
+	KDTree kdtree;
 };
 
 } // namespace Tmpl8

@@ -28,39 +28,6 @@
 
 namespace Tmpl8 {
 
-struct Intersection
-{
-	float t = 1e34f;		// intersection distance along ray
-	float u, v;		// barycentric coordinates of the intersection
-	uint triIndex;	// triangle index
-};
-__declspec(align(64)) class Ray
-{
-public:
-	Ray() = default;
-	Ray( const float3 origin, const float3 direction, const float distance = 1e34f, const int idx = -1 )
-	{
-		O = origin, D = direction, hit.t = distance;
-		// calculate reciprocal ray direction for triangles and AABBs
-		rD = float3( 1 / D.x, 1 / D.y, 1 / D.z );
-	#ifdef SPEEDTRIX
-		d0 = 1, d1 = d2 = 0; // ready for SIMD matrix math
-	#endif
-	}
-	float3 IntersectionPoint() const { return O + hit.t * D; }
-	// ray data
-#ifndef SPEEDTRIX
-	float3 O, D, rD;
-#else
-	union { struct { float3 O; float d0; }; __m128 O4; };
-	union { struct { float3 D; float d1; }; __m128 D4; };
-	union { struct { float3 rD; float d2; }; __m128 rD4; };
-#endif
-	Intersection hit; 
-};
-
-
-
 // -----------------------------------------------------------
 // Scene class
 // We intersect this. The query is internally forwarded to the
@@ -275,26 +242,11 @@ public:
 	//	}
 	bool IsOccluded( const Ray& ray ) const
 	{
-		if (cube.IsOccluded( ray )) return true;
-	#ifdef SPEEDTRIX
-		const float3 oc = ray.O - sphere.pos;
-		const float b = dot( oc, ray.D ), c = dot( oc, oc ) - (0.6f * 0.6f);
-		const float d = b * b - c;
-		if (d > 0)
-		{
-			const float t = -b - sqrtf( d );
-			const bool hit = t < ray.t && t > 0;
-			if (hit) return true;
-		}
-	#else
-		if (sphere.IsOccluded( ray )) return true;
-	#endif
 	#ifdef FOURLIGHTS
 		for (int i = 0; i < 4; i++) if (quad[i].IsOccluded( ray )) return true;
 	#else
 		if (quad.IsOccluded( ray )) return true;
 	#endif
-		if (torus.IsOccluded( ray )) return true;
 		return false; // skip planes and rounded corners
 		}
 	float3 GetNormal( const int objIdx, const float3 I, const float3 wo ) const
@@ -306,15 +258,15 @@ public:
 	#ifdef FOURLIGHTS
 		if (objIdx == 0) Nor = quad[0].GetNormal( I ); // they're all oriented the same
 	#else
-		if (objIdx == 0) N = quad.GetNormal( I );
+		if (objIdx == 0) Nor = quad.GetNormal( I );
 	#endif
 		else
 		{
 			// faster to handle the 6 planes without a call to GetNormal
 			Nor = float3( 0 );
-			Nor(objIdx - 4) / 2] = 1 - 2 * (float)(objIdx & 1);
+			Nor[(objIdx - 4) / 2] = 1 - 2 * (float)(objIdx & 1);
 		}
-		if (dot( N, wo ) > 0) Nor = -Nor; // hit backside / inside
+		if (dot( Nor, wo ) > 0) Nor = -Nor; // hit backside / inside
 		return Nor;
 	}
 	float3 GetAlbedo( int objIdx, float3 I ) const
