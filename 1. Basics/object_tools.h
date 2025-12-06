@@ -21,7 +21,7 @@ namespace Tmpl8 {
 	{
 	public:
 		Ray() = default;
-		Ray(const float3 origin, const float3 direction, const float distance = 1e34f, const int idx = -1)
+		Ray(const float3 origin, const float3 direction, const float distance = 1e30f, const int idx = -1)
 		{
 			O = origin, D = direction, t = distance;
 			// calculate reciprocal ray direction for triangles and AABBs
@@ -40,7 +40,7 @@ namespace Tmpl8 {
 		union { struct { float3 D; float d1; }; __m128 D4; };
 		union { struct { float3 rD; float d2; }; __m128 rD4; };
 #endif
-		float t = 1e34f;
+		float t = 1e30f;
 		int objIdx = -1;
 		bool inside = false; // true when in medium
 	};

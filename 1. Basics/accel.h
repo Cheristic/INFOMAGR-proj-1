@@ -37,7 +37,7 @@ namespace Tmpl8 {
 		void Subdivide(uint nodeIdx);
 		void Intersect(Ray& ray, uint nodeIdx);
 
-		bool IntersectAABB(Ray& ray, const float3 bmin, const float3 bmax) const
+		float IntersectAABB(Ray& ray, const float3 bmin, const float3 bmax) const
 		{
 			float tx1 = (bmin.x - ray.O.x) / ray.D.x, tx2 = (bmax.x - ray.O.x) / ray.D.x;
 			float tmin = min(tx1, tx2), tmax = max(tx1, tx2);
@@ -45,8 +45,10 @@ namespace Tmpl8 {
 			tmin = max(tmin, min(ty1, ty2)), tmax = min(tmax, max(ty1, ty2));
 			float tz1 = (bmin.z - ray.O.z) / ray.D.z, tz2 = (bmax.z - ray.O.z) / ray.D.z;
 			tmin = max(tmin, min(tz1, tz2)), tmax = min(tmax, max(tz1, tz2));
-			return tmax >= tmin && tmin < ray.t && tmax > 0;
+			if (tmax >= tmin && tmin < ray.t && tmax > 0) return tmin;
+			else return 1e30f;
 		}
+
 		void IntersectTri(Ray& ray, const Tri& tri) const
 		{
 			const float3 edge1 = tri.vertex1 - tri.vertex0;
