@@ -8,6 +8,7 @@ namespace Tmpl8 {
 	class Accel
 	{
 	public:
+		Accel() = default;
 		Accel(const char * objFile, uint* objIdxTracker, const float scale = 1)
 		{
 			FILE* file = fopen(objFile, "r");
@@ -90,7 +91,7 @@ namespace Tmpl8 {
 		Tri tri[MAX_TRIS];
 		uint* triIdx = 0;
 		Node* nodes = 0;
-		uint rootNodeIdx = 0, nodesUsed = 1;
+		int rootNodeIdx = 0, nodesUsed = 1;
 		uint triCount = 0;
 	};
 }

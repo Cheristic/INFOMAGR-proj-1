@@ -7,6 +7,7 @@ namespace Tmpl8 {
 class BVH : public Accel
 {
 public:
+	BVH() = default;
 	BVH(const char* objFile, uint* objIdxTracker, const float scale = 1) : Accel(objFile, objIdxTracker, scale) {}
 	void BVH::Build() // CHANGE TO SET TRI COUNT TO MODEL TRI COUNT
 	{
@@ -16,7 +17,6 @@ public:
 			// calculate triangle centroids for partitioning
 			tri[i].centroid = (tri[i].vertex0 + tri[i].vertex1 + tri[i].vertex2) * 0.3333f;
 		}
-		cout << triCount;
 		// assign all triangles to root node
 		Node& root = nodes[rootNodeIdx];
 		root.leftFirst = 0, root.triCount = triCount;
@@ -26,6 +26,7 @@ public:
 	}
 	void BVH::Intersect(Ray& ray, uint nodeIdx)
 	{
+
 		Node* node = &nodes[nodeIdx], * stack[64];
 		uint stackPtr = 0;
 

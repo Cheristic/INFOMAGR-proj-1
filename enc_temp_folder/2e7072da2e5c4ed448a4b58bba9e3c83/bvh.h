@@ -7,6 +7,7 @@ namespace Tmpl8 {
 class BVH : public Accel
 {
 public:
+	BVH() = default;
 	BVH(const char* objFile, uint* objIdxTracker, const float scale = 1) : Accel(objFile, objIdxTracker, scale) {}
 	void BVH::Build() // CHANGE TO SET TRI COUNT TO MODEL TRI COUNT
 	{
@@ -26,12 +27,12 @@ public:
 	}
 	void BVH::Intersect(Ray& ray, uint nodeIdx)
 	{
+
 		Node* node = &nodes[nodeIdx], * stack[64];
 		uint stackPtr = 0;
 
 		while (1)
 		{
-			//if (IntersectAABB(ray, node->aabbMin, node->aabbMax) == 1e30f) return;
 			if (node->isLeaf())
 			{
 				for (uint i = 0; i < node->triCount; i++)
