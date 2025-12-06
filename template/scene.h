@@ -55,9 +55,10 @@ namespace Tmpl8 {
 			torus.T = mat4::Translate(-0.25f, 0, 2) * mat4::RotateX(PI / 4);
 			torus.invT = torus.T.Inverted();
 
-			bvh = BVH("assets/unity.tri", &objIdx, 1);
+			bvh = BVH("../assets/unity.tri", &objIdx, 1);
+			bvh.triIdx = new uint[bvh.triCount];
 			bvh.Build();
-			kdtree = KDTree("assets/unity.tri",&objIdx, 1);
+			kdtree = KDTree("../assets/unity.tri",&objIdx, 1);
 			kdtree.Build();
 
 			SetTime(0);

@@ -1,4 +1,6 @@
+#pragma once
 #include "accel.h"
+#include "tmplmath.h"
 
 namespace Tmpl8 {
 

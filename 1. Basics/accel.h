@@ -31,7 +31,7 @@ namespace Tmpl8 {
 			fclose(file);
 
 			nodes = (Node*)_aligned_malloc(sizeof(Node) * triCount * 2 + 64, 64);
-			triIdx = new uint[triCount];
+			//triIdx = new uint[triCount];
 		}
 		void Build();
 		void Subdivide(uint nodeIdx);
@@ -95,6 +95,6 @@ namespace Tmpl8 {
 		uint* triIdx = 0;
 		Node* nodes = 0;
 		uint rootNodeIdx = 0, nodesUsed = 1;
-		uint triCount;
+		uint triCount = 0;
 	};
 }

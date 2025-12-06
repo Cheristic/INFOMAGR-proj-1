@@ -1,3 +1,4 @@
+#pragma once
 #include "accel.h"
 
 namespace Tmpl8 {
