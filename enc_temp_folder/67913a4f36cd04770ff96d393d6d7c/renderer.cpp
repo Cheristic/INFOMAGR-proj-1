@@ -32,6 +32,7 @@ void Renderer::Tick( float deltaTime )
 	// animation
 	if (animating) scene.SetTime( anim_time += deltaTime * 0.002f );
 	// pixel loop
+	Ray ray;
 	Timer t;
 	// lines are executed as OpenMP parallel tasks (disabled in DEBUG)
 #pragma omp parallel for schedule(dynamic)

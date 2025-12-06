@@ -31,6 +31,7 @@ public:
 
 		while (1)
 		{
+			//if (IntersectAABB(ray, node->aabbMin, node->aabbMax) == 1e30f) return;
 			if (node->isLeaf())
 			{
 				for (uint i = 0; i < node->triCount; i++)
