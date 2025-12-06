@@ -55,11 +55,11 @@ namespace Tmpl8 {
 			torus.T = mat4::Translate(-0.25f, 0, 2) * mat4::RotateX(PI / 4);
 			torus.invT = torus.T.Inverted();
 
-			bvh = BVH("../assets/unity.tri", &objIdx, 1);
-			bvh.triIdx = new uint[bvh.triCount];
-			bvh.Build();
-			kdtree = KDTree("../assets/unity.tri",&objIdx, 1);
-			kdtree.Build();
+			bvh = &BVH("../assets/unity.tri", &objIdx, 1);
+			//bvh->triIdx = new uint[bvh->triCount];
+			bvh->Build();
+			//kdtree = &KDTree("../assets/unity.tri",&objIdx, 1);
+			//kdtree->Build();
 
 			SetTime(0);
 			// Note: once we have triangle support we should get rid of the class
@@ -67,7 +67,7 @@ namespace Tmpl8 {
 		}
 		void SetTime(float t)
 		{
-			// default time for the scene is simply 0. Updating/ the time per frame 
+			// default time for the scene is simply 0. Updating/ the time PER frame 
 			// enables animation. Updating it per ray can be used for motion blur.
 			animTime = t;
 #ifdef FOURLIGHTS
@@ -257,8 +257,8 @@ namespace Tmpl8 {
 			cube.Intersect(ray);
 			torus.Intersect(ray);
 
-			if (useBVH) bvh.Intersect(ray, bvh.rootNodeIdx);
-			else kdtree.Intersect(ray, kdtree.rootNodeIdx);
+			if (useBVH) bvh->Intersect(ray, bvh->rootNodeIdx);
+			//else kdtree->Intersect(ray, kdtree->rootNodeIdx);
 
 		}
 		bool IsOccluded(const Ray& ray) const
@@ -353,7 +353,7 @@ namespace Tmpl8 {
 		Torus torus;
 
 		bool useBVH = true;
-		BVH bvh;
-		KDTree kdtree;
+		BVH *bvh;
+		KDTree *kdtree;
 	};
 }

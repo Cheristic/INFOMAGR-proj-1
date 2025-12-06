@@ -6,7 +6,6 @@ namespace Tmpl8 {
 class KDTree : public Accel
 {
 public:
-	KDTree() = default;
 	KDTree(const char* objFile, uint* objIdxTracker, const float scale = 1) : Accel(objFile, objIdxTracker, scale) {}
 	void KDTree::Build()
 	{

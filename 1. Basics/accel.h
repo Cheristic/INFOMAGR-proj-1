@@ -1,5 +1,6 @@
 #pragma once
 #include "precomp.h"
+#include <windows.h> 
 
 
 namespace Tmpl8 {
@@ -7,31 +8,24 @@ namespace Tmpl8 {
 	class Accel
 	{
 	public:
-		Accel() = default;
 		Accel(const char * objFile, uint* objIdxTracker, const float scale = 1)
 		{
-			float3* P = new float3[11042];
-			int UVs = 0, Ns = 0, Ps = 0, a, b, c, d, e, f, g, h, i;
 			FILE* file = fopen(objFile, "r");
+			float a, b, c, d, e, f, g, h, i;
 			if (!file) return; // file doesn't exist
-			while (!feof(file))
+
+			while (fscanf(file, "%f %f %f %f %f %f %f %f %f\n",
+				&a, &b, &c, &d, &e, &f, &g, &h, &i) == 9)
 			{
-				char line[512] = { 0 };
-				fgets(line, 511, file);
-				if (line[0] == 'v')
-					sscanf(line + 2, "%f %f %f", &P[Ps].x, &P[Ps].y, &P[Ps].z), Ps++;
-				if (line[0] != 'f') continue; else
-					sscanf(line + 2, "%i/%i/%i %i/%i/%i %i/%i/%i",
-						&a, &b, &c, &d, &e, &f, &g, &h, &i);
-				tri[triCount].vertex0 = P[a - 1] * scale;
-				tri[triCount].vertex1 = P[d - 1] * scale;
-				tri[triCount++].vertex2 = P[g - 1] * scale;
+				tri[triCount].vertex0 = float3(a, b, c);
+				tri[triCount].vertex1 = float3(d, e, f);
+				tri[triCount++].vertex2 = float3(g, h, i);
 				tri->objIdx = *objIdxTracker++;
 			}
 			fclose(file);
 
-			nodes = (Node*)_aligned_malloc(sizeof(Node) * triCount * 2 + 64, 64);
-			//triIdx = new uint[triCount];
+			nodes = new Node[triCount*2];
+			triIdx = new uint[triCount];
 		}
 		void Build();
 		void Subdivide(uint nodeIdx);

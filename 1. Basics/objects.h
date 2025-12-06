@@ -520,10 +520,9 @@ namespace Tmpl8 {
 	{
 	public:
 		Tri() = default;
-		Tri(int idx, float3 vertices[3], mat4 transform = mat4::Identity())
+		Tri(int idx, float3 vertices[3])
 		{
 			objIdx = idx;
-			T = transform, invT = transform.FastInvertedTransformNoScale();
 			vertex0 = vertices[0];
 			vertex1 = vertices[1];
 			vertex2 = vertices[2];
@@ -554,13 +553,12 @@ namespace Tmpl8 {
 		float3 GetNormal(const float3 I) const
 		{
 			// TransformVector( float3( 0, -1, 0 ), T ) 
-			return float3(-T.cell[1], -T.cell[5], -T.cell[9]);
+			return float3(1);
 		}
 		float3 GetAlbedo(const float3 I) const
 		{
 			return float3(10);
 		}
-		mat4 T, invT;
 		int objIdx = -1;
 		float3 vertex0, vertex1, vertex2; 
 		float3 centroid;

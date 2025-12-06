@@ -79,7 +79,7 @@ using namespace std;
 #define NODEFERWINDOWPOS
 #define NOMCX
 #define NOIME
-#define MAX_TRIS 64
+#define MAX_TRIS 12600
 
 #include "windows.h"
 
