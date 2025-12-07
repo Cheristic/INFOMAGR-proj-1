@@ -55,11 +55,10 @@ namespace Tmpl8 {
 			torus.T = mat4::Translate(-0.25f, 0, 2) * mat4::RotateX(PI / 4);
 			torus.invT = torus.T.Inverted();
 
-			bvh = BVH("../assets/unity.tri", &objIdx, 1);
-			//bvh->triIdx = new uint[bvh->triCount];
+			bvh = BVH("../assets/teapot.obj", &objIdx, 1);
 			bvh.Build();
-			//kdtree = &KDTree("../assets/unity.tri",&objIdx, 1);
-			//kdtree->Build();
+			//kdtree = KDTree("../assets/teapot.obj",&objIdx, 1);
+			//kdtree.Build();
 
 			SetTime(0);
 			// Note: once we have triangle support we should get rid of the class
@@ -258,7 +257,7 @@ namespace Tmpl8 {
 			torus.Intersect(ray);
 
 			if (useBVH) bvh.Intersect(ray, bvh.rootNodeIdx);
-			//else kdtree->Intersect(ray, kdtree->rootNodeIdx);
+			else kdtree.Intersect(ray, kdtree.rootNodeIdx);
 
 		}
 		bool IsOccluded(const Ray& ray) const
@@ -299,12 +298,16 @@ namespace Tmpl8 {
 			else if (objIdx == 1) N = sphere.GetNormal(I);
 			else if (objIdx == 2) N = sphere2.GetNormal(I);
 			else if (objIdx == 3) N = cube.GetNormal(I);
-			else if (objIdx == 10) N = torus.GetNormal(I);
-			else
-			{
+			else if (objIdx >= 4 && objIdx <= 9) {
 				// faster to handle the 6 planes without a call to GetNormal
 				N = float3(0);
 				N[(objIdx - 4) / 2] = 1 - 2 * (float)(objIdx & 1);
+			}
+			else if (objIdx == 10) N = torus.GetNormal(I);
+			else
+			{
+				if (useBVH) N = bvh.GetNormal(objIdx);
+				else N = kdtree.GetNormal(objIdx);
 			}
 			if (dot(N, wo) > 0) N = -N; // hit backside / inside
 			return N;
@@ -320,10 +323,10 @@ namespace Tmpl8 {
 			if (objIdx == 1) return sphere.GetAlbedo(I);
 			if (objIdx == 2) return sphere2.GetAlbedo(I);
 			if (objIdx == 3) return cube.GetAlbedo(I);
+			if (objIdx >= 4 && objIdx <= 9) return plane[objIdx - 4].GetAlbedo(I);
 			if (objIdx == 10) return torus.GetAlbedo(I);
-			return plane[objIdx - 4].GetAlbedo(I);
-			// once we have triangle support, we should pass objIdx and the bary-
-			// centric coordinates of the hit, instead of the intersection location.
+			else if (useBVH) return bvh.GetAlbedo();
+			else return kdtree.GetAlbedo();
 		}
 		float GetReflectivity(int objIdx, float3 I) const
 		{

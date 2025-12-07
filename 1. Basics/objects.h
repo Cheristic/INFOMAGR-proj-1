@@ -516,51 +516,11 @@ namespace Tmpl8 {
 
 
 	// IMPLEMENT WITH MESHESSSS
-	class Tri
+	struct Tri
 	{
-	public:
-		Tri() = default;
-		Tri(int idx, float3 vertices[3])
-		{
-			objIdx = idx;
-			vertex0 = vertices[0];
-			vertex1 = vertices[1];
-			vertex2 = vertices[2];
-		}
-		void Intersect(Ray& ray) const
-		{
-			const float3 edge1 = vertex1 - vertex0;
-			const float3 edge2 = vertex2 - vertex0;
-			const float3 h = cross(ray.D, edge2);
-			const float a = dot(edge1, h);
-			if (a > -0.0001f && a < 0.0001f) return; // ray parallel to triangle
-			const float f = 1 / a;
-			const float3 s = ray.O - vertex0;
-			const float u = f * dot(s, h);
-			if (u < 0 || u > 1) return;
-			const float3 q = cross(s, edge1);
-			const float v = f * dot(ray.D, q);
-			if (v < 0 || u + v > 1) return;
-			const float t = f * dot(edge2, q);
-			if (t > 0.0001f && t < ray.t) 
-				ray.t = t; ray.objIdx = objIdx;
-		}
-		bool IsOccluded(const Ray& ray) const
-		{
-			// what??????
-			return false;
-		}
-		float3 GetNormal(const float3 I) const
-		{
-			// TransformVector( float3( 0, -1, 0 ), T ) 
-			return float3(1);
-		}
-		float3 GetAlbedo(const float3 I) const
-		{
-			return float3(10);
-		}
 		int objIdx = -1;
-		float3 vertex0, vertex1, vertex2; 
+		uint vertexIdx0, vertexIdx1, vertexIdx2; 
+		uint normalIdx0, normalIdx1, normalIdx2;
 		float3 centroid;
 	};
 

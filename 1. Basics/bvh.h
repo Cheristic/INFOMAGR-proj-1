@@ -15,7 +15,7 @@ public:
 			// populate triangle index array
 			triIdx[i] = i;
 			// calculate triangle centroids for partitioning
-			tri[i].centroid = (tri[i].vertex0 + tri[i].vertex1 + tri[i].vertex2) * 0.3333f;
+			tri[i].centroid = (P[tri[i].vertexIdx0] + P[tri[i].vertexIdx1] + P[tri[i].vertexIdx2]) * 0.3333f;
 		}
 		// assign all triangles to root node
 		Node& root = nodes[rootNodeIdx];
@@ -26,35 +26,17 @@ public:
 	}
 	void BVH::Intersect(Ray& ray, uint nodeIdx)
 	{
-
-		Node* node = &nodes[nodeIdx], * stack[64];
-		uint stackPtr = 0;
-
-		while (1)
+		Node& node = nodes[nodeIdx];
+		if (IntersectAABB(ray, node.aabbMin, node.aabbMax) == 1e30f) return;
+		if (node.isLeaf())
 		{
-			if (node->isLeaf())
-			{
-				for (uint i = 0; i < node->triCount; i++)
-					IntersectTri(ray, tri[triIdx[node->leftFirst + i]]);
-
-				if (stackPtr == 0) break; else node = stack[--stackPtr];
-			}
-			Node* child1 = &nodes[node->leftFirst];
-			Node* child2 = &nodes[node->leftFirst + 1];
-
-			float dist1 = IntersectAABB(ray, child1->aabbMin, child1->aabbMax);
-			float dist2 = IntersectAABB(ray, child2->aabbMin, child2->aabbMax);
-
-			if (dist1 > dist2) { swap(dist1, dist2); swap(child1, child2); }
-			if (dist1 == 1e30f)
-			{
-				if (stackPtr == 0) break; else node = stack[--stackPtr];
-			}
-			else
-			{
-				node = child1;
-				if (dist2 != 1e30f) stack[stackPtr++] = child2;
-			}
+			for (uint i = 0; i < node.triCount; i++)
+				IntersectTri(ray, tri[triIdx[node.leftFirst + i]]);
+		}
+		else
+		{
+			Intersect(ray, node.leftFirst);
+			Intersect(ray, node.leftFirst + 1);
 		}
 	}
 	void BVH::Subdivide(uint nodeIdx)
@@ -116,12 +98,12 @@ public:
 		{
 			uint leafTriIdx = triIdx[first + i];
 			Tri& leafTri = tri[leafTriIdx];
-			node.aabbMin = fminf(node.aabbMin, leafTri.vertex0);
-			node.aabbMin = fminf(node.aabbMin, leafTri.vertex1);
-			node.aabbMin = fminf(node.aabbMin, leafTri.vertex2);
-			node.aabbMax = fmaxf(node.aabbMax, leafTri.vertex0);
-			node.aabbMax = fmaxf(node.aabbMax, leafTri.vertex1);
-			node.aabbMax = fmaxf(node.aabbMax, leafTri.vertex2);
+			node.aabbMin = fminf(node.aabbMin, P[leafTri.vertexIdx0]);
+			node.aabbMin = fminf(node.aabbMin, P[leafTri.vertexIdx1]);
+			node.aabbMin = fminf(node.aabbMin, P[leafTri.vertexIdx2]);
+			node.aabbMax = fmaxf(node.aabbMax, P[leafTri.vertexIdx0]);
+			node.aabbMax = fmaxf(node.aabbMax, P[leafTri.vertexIdx1]);
+			node.aabbMax = fmaxf(node.aabbMax, P[leafTri.vertexIdx2]);
 		}
 	}
 

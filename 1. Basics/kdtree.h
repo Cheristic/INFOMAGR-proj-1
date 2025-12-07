@@ -16,7 +16,7 @@ public:
 			// populate triangle index array
 			triIdx[i] = i;
 			// calculate triangle centroids for partitioning
-			tri[i].centroid = (tri[i].vertex0 + tri[i].vertex1 + tri[i].vertex2) * 0.3333f;
+			tri[i].centroid = (P[tri[i].vertexIdx0] + P[tri[i].vertexIdx1] + P[tri[i].vertexIdx2]) * 0.3333f;
 		}
 		// assign all triangles to root node
 		Node& root = nodes[rootNodeIdx];
@@ -28,12 +28,12 @@ public:
 		{
 			uint leafTriIdx = triIdx[first + i];
 			Tri& leafTri = tri[leafTriIdx];
-			root.aabbMin = fminf(root.aabbMin, leafTri.vertex0);
-			root.aabbMin = fminf(root.aabbMin, leafTri.vertex1);
-			root.aabbMin = fminf(root.aabbMin, leafTri.vertex2);
-			root.aabbMax = fmaxf(root.aabbMax, leafTri.vertex0);
-			root.aabbMax = fmaxf(root.aabbMax, leafTri.vertex1);
-			root.aabbMax = fmaxf(root.aabbMax, leafTri.vertex2);
+			root.aabbMin = fminf(root.aabbMin, P[leafTri.vertexIdx0]);
+			root.aabbMin = fminf(root.aabbMin, P[leafTri.vertexIdx1]);
+			root.aabbMin = fminf(root.aabbMin, P[leafTri.vertexIdx2]);
+			root.aabbMax = fmaxf(root.aabbMax, P[leafTri.vertexIdx0]);
+			root.aabbMax = fmaxf(root.aabbMax, P[leafTri.vertexIdx1]);
+			root.aabbMax = fmaxf(root.aabbMax, P[leafTri.vertexIdx2]);
 		}
 		// subdivide recursively
 		Subdivide(rootNodeIdx);
@@ -86,18 +86,32 @@ public:
 			else
 				swap(triIdx[i], triIdx[j--]);
 		}
+		// handle edge case where triangle n's centroid is outside voxel, but n+1 has vertex inside
+		int rightFirst = 0, leftCount = 0;
+		for (int l = node.leftFirst; l < node.leftFirst + node.triCount; l++) 
+		{
+			if (P[tri[triIdx[l]].vertexIdx0][axis] < splitPos ||
+				P[tri[triIdx[l]].vertexIdx1][axis] < splitPos ||
+				P[tri[triIdx[l]].vertexIdx2][axis] < splitPos) leftCount = l - node.leftFirst + 1;
+			if (rightFirst == 0) {
+				if (P[tri[triIdx[l]].vertexIdx0][axis] >= splitPos ||
+					P[tri[triIdx[l]].vertexIdx1][axis] >= splitPos ||
+					P[tri[triIdx[l]].vertexIdx2][axis] >= splitPos) rightFirst = l;
+			}
+		}
+
 		// abort split if one of the sides is empty
-		int leftCount = i - node.leftFirst;
 		if (leftCount == 0 || leftCount == node.triCount) return;
 		// create child nodes
 		int leftChildIdx = nodesUsed++;
 		int rightChildIdx = nodesUsed++;
 		nodes[leftChildIdx].leftFirst = node.leftFirst;
 		nodes[leftChildIdx].triCount = leftCount;
-		nodes[rightChildIdx].leftFirst = i;
-		nodes[rightChildIdx].triCount = node.triCount - leftCount;
+		nodes[rightChildIdx].leftFirst = rightFirst;
+		nodes[rightChildIdx].triCount = node.leftFirst + node.triCount - rightFirst;
 		node.leftFirst = leftChildIdx;
 		node.triCount = 0;
+
 		UpdateNodeBounds(leftChildIdx, nodeIdx, node.aabbMin[axis], splitPos, axis);
 		UpdateNodeBounds(rightChildIdx, nodeIdx, splitPos, node.aabbMax[axis], axis);
 		// recurse
