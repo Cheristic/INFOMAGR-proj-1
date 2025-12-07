@@ -4,12 +4,12 @@
 // Initialize the renderer
 // -----------------------------------------------------------
 
-
 void Renderer::Init()
 {
 	// create fp32 rgb pixel buffer to render to
 	accumulator = (float4*)MALLOC64( SCRWIDTH * SCRHEIGHT * 16 );
 	memset( accumulator, 0, SCRWIDTH * SCRHEIGHT * 16 );
+	camera = new Camera(scene.GetCameraPos(0), scene.GetCameraTarget(0));
 }
 
 float3 Renderer::Trace(Ray& ray)
@@ -61,7 +61,7 @@ void Renderer::Tick( float deltaTime )
 		// trace a primary ray for each pixel on the line
 		for (int x = 0; x < SCRWIDTH; x++)
 		{
-			float4 pixel = float4(Trace(camera.GetPrimaryRay((float)x, (float)y)), 0);
+			float4 pixel = float4(Trace(camera->GetPrimaryRay((float)x, (float)y)), 0);
 			// translate accumulator contents to rgb32 pixels
 			if (pixel.x == 0 && pixel.y == 0 && pixel.z == 0) {
 				blacks++;
@@ -82,7 +82,7 @@ void Renderer::Tick( float deltaTime )
 	float fps = 1000.0f / avg, rps = (SCRWIDTH * SCRHEIGHT) / avg;
 	printf( "%5.2fms (%.1ffps) - %.1fMrays/s\n", avg, fps, rps / 1000 );
 	// handle user input
-	camera.HandleInput( deltaTime );
+	camera->HandleInput( deltaTime );
 }
 
 // -----------------------------------------------------------
@@ -94,7 +94,7 @@ void Renderer::UI()
 	ImGui::Checkbox( "Animate scene", &animating );
 	ImGui::Checkbox("Acceleration structure", &scene.useBVH);
 	// ray query on mouse
-	Ray r = camera.GetPrimaryRay( (float)mousePos.x, (float)mousePos.y );
+	Ray r = camera->GetPrimaryRay( (float)mousePos.x, (float)mousePos.y );
 	//scene.FindNearest( r );
 	//ImGui::Text( "Object id: %i", r.objIdx );
 }

@@ -27,6 +27,12 @@ public:
 	void BVH::Intersect(Ray& ray, uint nodeIdx)
 	{
 		Node& node = nodes[nodeIdx];
+		if (nodeIdx == rootNodeIdx) // first intersect, transform
+		{
+			ray.O = TransformPosition(ray.O, invM);
+			ray.D = TransformVector(ray.D, invM);
+		}
+
 		if (IntersectAABB(ray, node.aabbMin, node.aabbMax) == 1e30f) return;
 		if (node.isLeaf())
 		{
@@ -37,6 +43,12 @@ public:
 		{
 			Intersect(ray, node.leftFirst);
 			Intersect(ray, node.leftFirst + 1);
+		}
+
+		if (nodeIdx == rootNodeIdx) // transform back
+		{
+			ray.O = TransformPosition(ray.O, M);
+			ray.D = TransformVector(ray.D, M);
 		}
 	}
 	void BVH::Subdivide(uint nodeIdx)

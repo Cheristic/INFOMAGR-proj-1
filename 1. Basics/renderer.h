@@ -25,7 +25,7 @@ public:
 	int2 mousePos;
 	float4* accumulator;
 	Scene scene;
-	Camera camera;
+	Camera* camera;
 	bool animating = true;
 	float anim_time = 0;
 };

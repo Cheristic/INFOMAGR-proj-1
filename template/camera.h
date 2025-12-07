@@ -11,11 +11,11 @@ namespace Tmpl8 {
 class Camera
 {
 public:
-	Camera()
+	Camera(float3 pos, float3 target)
 	{
 		// setup a basic view frustum
-		camPos = float3( 0, 0, -2 );
-		camTarget = float3( 0, 0, -1 );
+		camPos = pos;
+		camTarget = target;
 		topLeft = float3( -aspect, 1, 0 );
 		topRight = float3( aspect, 1, 0 );
 		bottomLeft = float3( -aspect, -1, 0 );

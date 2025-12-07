@@ -9,10 +9,12 @@ namespace Tmpl8 {
 	{
 	public:
 		Accel() = default;
-		Accel(const char * objFile, uint* objIdxTracker, const float scale = 1)
+		Accel(const char * objFile, uint* objIdxTracker, const float scale = 1, mat4 transform = mat4::Identity())
 		{
 			FILE* file = fopen(objFile, "r");
+			tri = new Tri[MAX_TRIS];
 			N = new float3[MAX_TRIS], P = new float3[MAX_TRIS];
+			M = transform, invM = transform.FastInvertedTransformNoScale();
 
 			int Ns = 0, Ps = 0, a, b, c, d, e, f, g, h, i;
 			if (!file) return; // file doesn't exist
@@ -115,11 +117,12 @@ namespace Tmpl8 {
 			return cost > 0 ? cost : 1e30f;
 		}
 
-		Tri tri[MAX_TRIS];
+		Tri* tri;
 		uint* triIdx = 0;
 		Node* nodes = 0;
 		int rootNodeIdx = 0, nodesUsed = 1;
 		uint triCount = 0;
 		float3* P = 0, * N = 0;
+		mat4 M, invM;
 	};
 }
