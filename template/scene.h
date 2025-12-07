@@ -38,7 +38,7 @@ namespace Tmpl8 {
 			uint objIdx = 0;
 			// we store all primitives in one continuous buffer
 #ifdef FOURLIGHTS
-			for (int i = 0; i < 4; i++) quad[i] = Quad(objIdx, 0.5f);	// 0: four light sources
+			for (int i = 0; i < 4; i++) quad[i] = Quad(objIdx, 5.0f);	// 0: four light sources
 #else
 			quad = Quad(0, 1);									// 0: light source
 #endif
@@ -101,7 +101,7 @@ namespace Tmpl8 {
 			return float3(0);
 #endif
 		}
-		float3 RandomPointOnLight(const float r0, const float r1) const
+		float3 RandomPointOnLight(const float r0, const float r1)
 		{
 #ifndef FOURLIGHTS
 			// get a random position on the swinging quad
@@ -125,7 +125,29 @@ namespace Tmpl8 {
 			return corner1 + r2 * (corner2 - corner1) + r1 * (corner3 - corner1);
 #endif
 		}
-		float3 RandomPointOnLight(uint& seed) const
+		uint GetRandomLight(uint& seed) 
+		{
+			float r = RandomFloat();
+			uint lightIdx = (uint)(r * 4);
+			return lightIdx;
+		}
+		float3 RandomPointOnLightQuad(uint lightIdx, uint& seed) {
+			const float r0 = RandomFloat();
+			const float r1 = RandomFloat();
+			const Quad& q = quad[lightIdx];
+			float stratum = lightIdx * 0.25f;
+			float r2 = (r0 - stratum) / (1 - stratum);
+			// get a random position on the selected quad
+			const float size = q.size;
+			float3 corner1 = TransformPosition(float3(-size, 0, -size), q.T);
+			float3 corner2 = TransformPosition(float3(size, 0, -size), q.T);
+			float3 corner3 = TransformPosition(float3(-size, 0, size), q.T);
+			return corner1 + r2 * (corner2 - corner1) + r1 * (corner3 - corner1);
+		}
+		Quad GetLightQuad(uint lightIdx) {
+			return quad[lightIdx];
+		}
+		float3 RandomPointOnLight(uint& seed)
 		{
 			return RandomPointOnLight(RandomFloat(seed), RandomFloat(seed));
 		}

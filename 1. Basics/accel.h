@@ -29,8 +29,9 @@ namespace Tmpl8 {
 						&a, &b, &c, &d, &e, &f, &g, &h, &i);
 				tri[triCount].vertexIdx0 = a - 1, tri[triCount].normalIdx0 = c - 1;
 				tri[triCount].vertexIdx1 = d - 1, tri[triCount].normalIdx1 = f - 1;
-				tri[triCount].vertexIdx2 = g - 1, tri[triCount++].normalIdx2 = i - 1;
-				tri->objIdx = *objIdxTracker++;
+				tri[triCount].vertexIdx2 = g - 1, tri[triCount].normalIdx2 = i - 1;
+				tri[triCount++].objIdx = (*objIdxTracker);
+				(*objIdxTracker)++;
 			}
 
 			fclose(file);
@@ -44,13 +45,15 @@ namespace Tmpl8 {
 
 		float3 GetAlbedo() const
 		{
-			return float3(0);
+			return float3(1);
 		}
 
 		float3 GetNormal(uint objIdx) const
 		{
 			for (int i = 0; i < MAX_TRIS; i++) {
-				if (tri[i].objIdx == objIdx) return (N[tri[i].normalIdx0] + N[tri[i].normalIdx1] + N[tri[i].normalIdx2]) * 0.3333f;
+				if (tri[i].objIdx == objIdx) {
+					return (N[tri[i].normalIdx0] + N[tri[i].normalIdx1] + N[tri[i].normalIdx2]) * 0.3333f;
+				}
 			}
 			return float3(1);
 		}

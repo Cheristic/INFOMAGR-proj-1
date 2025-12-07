@@ -9,7 +9,7 @@ class BVH : public Accel
 public:
 	BVH() = default;
 	BVH(const char* objFile, uint* objIdxTracker, const float scale = 1) : Accel(objFile, objIdxTracker, scale) {}
-	void BVH::Build() // CHANGE TO SET TRI COUNT TO MODEL TRI COUNT
+	void BVH::Build() 
 	{
 		for (uint i = 0; i < triCount; i++) {
 			// populate triangle index array

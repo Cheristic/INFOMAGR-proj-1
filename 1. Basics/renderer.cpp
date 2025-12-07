@@ -18,10 +18,29 @@ float3 Renderer::Trace(Ray& ray)
 	if (ray.objIdx == -1) return 0; // or a fancy sky color
 	float3 I = ray.O + ray.t * ray.D;
 	float3 N = scene.GetNormal(ray.objIdx, I, ray.D);
+
+	uint seed = 0;
+	uint quadIdx = scene.GetRandomLight(seed);
+	Quad quad = scene.GetLightQuad(quadIdx);
+	float3 L = scene.RandomPointOnLightQuad(quadIdx, seed) - I;
+	float dist = length(L);
+	L /= dist;
+	float cos_o = dot(-L, quad.GetNormal(I));
+	float cos_i = dot(L, N);
+	if ((cos_o <= 0) || (cos_i <= 0)) return float3(0);
+
+	Ray shadowRay = Ray(I + DBL_EPSILON * L, L, dist - 2 * DBL_EPSILON);
+	scene.FindNearest(shadowRay);
+	if (shadowRay.objIdx == -1) return float3(0);
+
+
 	float3 albedo = scene.GetAlbedo(ray.objIdx, I);
+	float3 BRDF = albedo / PI;
+	float solidAngle = (scene.GetLightArea() * cos_o) / (dist * dist);
 	/* visualize normal */ // return (N + 1) * 0.5f;
 	/* visualize distance */ // return 0.1f * float3( ray.t, ray.t, ray.t );
-	/* visualize albedo */ return albedo;
+	/* visualize albedo */
+	return BRDF * scene.GetLightCount() * scene.GetLightColor() * solidAngle * cos_i;
 }
 
 // -----------------------------------------------------------
@@ -33,6 +52,8 @@ void Renderer::Tick( float deltaTime )
 	if (animating) scene.SetTime( anim_time += deltaTime * 0.002f );
 	// pixel loop
 	Timer t;
+	int blacks = 0;
+
 	// lines are executed as OpenMP parallel tasks (disabled in DEBUG)
 #pragma omp parallel for schedule(dynamic)
 	for (int y = 0; y < SCRHEIGHT; y++)
@@ -42,10 +63,18 @@ void Renderer::Tick( float deltaTime )
 		{
 			float4 pixel = float4(Trace(camera.GetPrimaryRay((float)x, (float)y)), 0);
 			// translate accumulator contents to rgb32 pixels
+			if (pixel.x == 0 && pixel.y == 0 && pixel.z == 0) {
+				blacks++;
+			}
+			else {
+				//cout << pixel.x << " " << pixel.y << " " << pixel.z << "\n";
+			}
 			screen->pixels[x + y * SCRWIDTH] = RGBF32_to_RGB8( &pixel );
 			accumulator[x + y * SCRWIDTH] = pixel;
 		}
 	}
+	cout << "blacks = " << blacks / (640*1024.0) << "\n";
+
 	// performance report - running average - ms, MRays/s
 	static float avg = 10, alpha = 1;
 	avg = (1 - alpha) * avg + alpha * t.elapsed() * 1000;
