@@ -63,6 +63,7 @@ void Renderer::UI()
 {
 	// animation toggle
 	ImGui::Checkbox( "Animate scene", &animating );
+	ImGui::Checkbox("Acceleration structure", &scene.useBVH);
 	// ray query on mouse
 	Ray r = camera.GetPrimaryRay( (float)mousePos.x, (float)mousePos.y );
 	//scene.FindNearest( r );
