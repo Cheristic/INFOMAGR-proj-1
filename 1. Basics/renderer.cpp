@@ -47,10 +47,16 @@ void Renderer::Init()
 float3 Renderer::Trace(Ray& ray)
 {
 	scene.FindNearest(ray);
+	int currIntTests = scene.intersectionTests;
+	int currTravSteps = scene.traversalSteps;
+	intersectionTestsPrimary += currIntTests;
+	traversalStepsPrimary += currTravSteps;
+
 	if (ray.objIdx == -1) return 0; // or a fancy sky color
 	float3 I = ray.O + ray.t * ray.D;
 	float3 N = scene.GetNormal(ray.objIdx, I, ray.D);
-	return scene.GetAlbedo(ray.objIdx, I);
+	//return scene.GetAlbedo(ray.objIdx, I);
+
 
 	uint seed = 0;
 	uint quadIdx = scene.GetRandomLight(seed);
@@ -64,6 +70,9 @@ float3 Renderer::Trace(Ray& ray)
 
 	Ray shadowRay = Ray(I + DBL_EPSILON * L, L, dist - 2 * DBL_EPSILON);
 	scene.FindNearest(shadowRay);
+
+	intersectionTestsShadow += scene.intersectionTests - currIntTests;
+	traversalStepsShadow += scene.traversalSteps - currTravSteps;
 	if (shadowRay.objIdx == -1) return float3(0);
 
 
@@ -107,6 +116,16 @@ void Renderer::Tick( float deltaTime )
 			}
 			scene.maxIntersectionTests = max(scene.maxIntersectionTests, scene.intersectionTests);
 			scene.maxTraversalSteps = max(scene.maxTraversalSteps, scene.traversalSteps);
+
+			if (frames < 100) 
+			{
+				minIntersects = min(minIntersects, scene.intersectionTests);
+				minTraverses = min(minTraverses, scene.traversalSteps);
+				traversalSteps += scene.traversalSteps;
+				intersectionTests += scene.intersectionTests;
+				totalPixelsChecked++;
+			}
+
 			scene.intersectionTests = 0;
 			scene.traversalSteps = 0;
 		}
@@ -117,10 +136,19 @@ void Renderer::Tick( float deltaTime )
 	avg = (1 - alpha) * avg + alpha * t.elapsed() * 1000;
 	if (alpha > 0.05f) alpha *= 0.5f;
 	float fps = 1000.0f / avg, rps = (SCRWIDTH * SCRHEIGHT) / avg;
-	printf( "%5.2fms (%.1ffps) - %.1fMrays/s\n", avg, fps, rps / 1000 );
+	//printf( "%5.2fms (%.1ffps) - %.1fMrays/s\n", avg, fps, rps / 1000 );
 	// handle user input
 	camera->HandleInput( deltaTime );
-	cout << camera->camPos.x << " " << camera->camPos.y << " " << camera->camPos.z << " " << camera->camTarget.x << " " << camera->camTarget.y << " " << camera->camTarget.z << "\n";
+	frames++;
+	if (frames == 100) 
+	{
+		cout << "INTERS " << scene.maxIntersectionTests << " " << minIntersects << " " << intersectionTests / totalPixelsChecked << "\n";
+		cout << "TRAVERS " << scene.maxTraversalSteps << " " << minTraverses << " " << traversalSteps / totalPixelsChecked << "\n";
+		cout << "PRIMARY RAYS, INTERS " << intersectionTestsPrimary / totalPixelsChecked << " TRAVERS " << traversalStepsPrimary / totalPixelsChecked << "\n";
+		cout << "SHADOW RAYS, INTERS " << intersectionTestsShadow / totalPixelsChecked << " TRAVERS " << traversalStepsShadow / totalPixelsChecked << "\n";
+
+	}
+	//cout << camera->camPos.x << " " << camera->camPos.y << " " << camera->camPos.z << " " << camera->camTarget.x << " " << camera->camTarget.y << " " << camera->camTarget.z << "\n";
 }
 
 // -----------------------------------------------------------
@@ -175,11 +203,23 @@ void Renderer::UI()
 	scene.SceneIdx = f;
 	if (gOld != g)
 	{
+		cout << "Swapping Positions\n";
 		camera->camPos = scene.GetCameraPos(g);
 		camera->camTarget = scene.GetCameraTarget(g);
 		camera->Update();
 		scene.maxIntersectionTests = 0;
 		scene.maxTraversalSteps = 0;
+		traversalSteps = 0;
+		minTraverses = 10000000;
+		intersectionTests = 0;
+		minIntersects = 10000000;
+		totalPixelsChecked = 0;
+		frames = 0;
+
+		traversalStepsPrimary = 0;
+		intersectionTestsPrimary = 0;
+		traversalStepsShadow = 0;
+		intersectionTestsShadow = 0;
 	}
 	gOld = g;
 

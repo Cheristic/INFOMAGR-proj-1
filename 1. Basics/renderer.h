@@ -34,6 +34,17 @@ public:
 	float remap(float x, float inMin, float inMax, float outMin, float outMax);
 	float3 remapToGreenRed();
 	uint createRGB(int r, int g, int b);
+	int traversalSteps;
+	int minTraverses = 10000000;
+	int intersectionTests;
+	int minIntersects = 10000000;
+	int totalPixelsChecked;
+
+	int traversalStepsPrimary;
+	int intersectionTestsPrimary;
+	int traversalStepsShadow;
+	int intersectionTestsShadow;
+	uint frames = 0;
 
 };
 

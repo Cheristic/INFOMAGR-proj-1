@@ -1,7 +1,2 @@
-This template is intended for students of Utrecht University.
-
-**Please refer to "_ getting started.pdf" for instructions.**
-
-Code is fully public domain. Use as you please.
-
-Contact me at bikker.j@gmail.com.
+## How to run
+To run, open up the "tmpl_2022-rt.sln" file in Visual Studio Community. Then at the top of the screen, select Release from the drop down, and Run.

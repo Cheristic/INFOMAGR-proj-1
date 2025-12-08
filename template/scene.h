@@ -85,6 +85,18 @@ namespace Tmpl8 {
 				oct = Octree("../assets/teapot.obj", &objIdx, 1, float3(.5, 0, -.1));
 				oct.Build();
 			}
+			else if (SceneIdx == 2)
+			{
+				int currIdx = objIdx;
+				bvh = BVH("../assets/dragon.obj", &objIdx, 1);
+				bvh.Build();
+				objIdx = currIdx;
+				kdtree = KDTree("../assets/dragon.obj", &objIdx, 1);
+				kdtree.Build();
+				objIdx = currIdx;
+				oct = Octree("../assets/dragon.obj", &objIdx, 1);
+				oct.Build();
+			}
 
 
 			SetTime(0);
@@ -221,7 +233,7 @@ namespace Tmpl8 {
 			
 
 			if (!accelStruct) return;
-			if (SceneIdx == 0) 
+			if (SceneIdx == 0 || SceneIdx == 2) 
 			{
 				if (accelStructType == 0) bvh.Intersect(ray, bvh.rootNodeIdx, &intersectionTests, &traversalSteps);
 				else if (accelStructType == 1) kdtree.Intersect(ray, kdtree.rootNodeIdx, &intersectionTests, &traversalSteps);
@@ -287,6 +299,14 @@ namespace Tmpl8 {
 					else N = oct2.GetNormal(objIdx);
 				}
 			}
+			else if (SceneIdx == 2) {
+				if (accelStruct)
+				{
+					if (accelStructType == 0) N = bvh.GetNormal(objIdx);
+					else if (accelStructType == 1) N = kdtree.GetNormal(objIdx);
+					else N = oct.GetNormal(objIdx);
+				}
+			}
 			
 			if (dot(N, wo) > 0) N = -N; // hit backside / inside
 			return N;
@@ -319,11 +339,16 @@ namespace Tmpl8 {
 				}
 				
 			}
+			else if (SceneIdx == 2) {
+				if (accelStructType == 0) return bvh.GetAlbedo();
+				else if (accelStructType == 1) return kdtree.GetAlbedo();
+				else return oct.GetAlbedo();
+			}
 			return 0;
 		}
 
 		float3 GetCameraPos(int posIdx) {
-			if (SceneIdx == 0) 
+			if (SceneIdx == 0 || SceneIdx == 2)
 			{
 				if (posIdx == 0) return float3(0, 0, -2);
 				else if (posIdx == 1) return float3(1, 0, -2);
@@ -338,7 +363,7 @@ namespace Tmpl8 {
 		}
 
 		float3 GetCameraTarget(int posIdx) {
-			if (SceneIdx == 0)
+			if (SceneIdx == 0 || SceneIdx == 2)
 			{
 				if (posIdx == 0) return float3(0, 0, -1);
 				else if (posIdx == 1) return float3(0, 0, -1);
@@ -370,7 +395,7 @@ namespace Tmpl8 {
 		Octree oct2;
 
 
-		int SceneIdx = 1;
+		int SceneIdx = 0;
 
 		int intersectionTests = 0;
 		int maxIntersectionTests = 0;
