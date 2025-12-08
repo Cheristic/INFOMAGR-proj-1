@@ -144,8 +144,8 @@ void Renderer::Tick( float deltaTime )
 	{
 		cout << "INTERS " << scene.maxIntersectionTests << " " << minIntersects << " " << intersectionTests / totalPixelsChecked << "\n";
 		cout << "TRAVERS " << scene.maxTraversalSteps << " " << minTraverses << " " << traversalSteps / totalPixelsChecked << "\n";
-		cout << "PRIMARY RAYS, INTERS " << intersectionTestsPrimary / totalPixelsChecked << " TRAVERS " << traversalStepsPrimary / totalPixelsChecked << "\n";
-		cout << "SHADOW RAYS, INTERS " << intersectionTestsShadow / totalPixelsChecked << " TRAVERS " << traversalStepsShadow / totalPixelsChecked << "\n";
+		cout << "PRIMARY RAYS: INTERS " << intersectionTestsPrimary / totalPixelsChecked << " TRAVERS " << traversalStepsPrimary / totalPixelsChecked << "\n";
+		cout << "SHADOW RAYS: INTERS " << intersectionTestsShadow / totalPixelsChecked << " TRAVERS " << traversalStepsShadow / totalPixelsChecked << "\n";
 
 	}
 	//cout << camera->camPos.x << " " << camera->camPos.y << " " << camera->camPos.z << " " << camera->camTarget.x << " " << camera->camTarget.y << " " << camera->camTarget.z << "\n";
@@ -189,10 +189,10 @@ void Renderer::UI()
 
 	scene.accelStructType = e;
 
-	static int f = scene.SceneIdx;
-	static int fOld = f;
-	ImGui::RadioButton("Scene 1", &f, 0); ImGui::SameLine();
-	ImGui::RadioButton("Scene 2", &f, 1);
+	//static int f = scene.SceneIdx;
+	//static int fOld = f;
+	//ImGui::RadioButton("Scene 1", &f, 0); ImGui::SameLine();
+	//ImGui::RadioButton("Scene 2", &f, 1);
 
 	static int g = 0;
 	static int gOld = 0;
@@ -200,10 +200,10 @@ void Renderer::UI()
 	ImGui::RadioButton("CamPos 2", &g, 1); ImGui::SameLine();
 	ImGui::RadioButton("CamPos 3", &g, 2);
 
-	scene.SceneIdx = f;
+	//scene.SceneIdx = f;
 	if (gOld != g)
 	{
-		cout << "Swapping Positions\n";
+		cout << "Swapping Positions, remeasuring stats...\n";
 		camera->camPos = scene.GetCameraPos(g);
 		camera->camTarget = scene.GetCameraTarget(g);
 		camera->Update();

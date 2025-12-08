@@ -145,14 +145,14 @@ public:
 			child[7] = &nodes[node->leftFirst + 7];
 
 			float dist[8];
-			dist[0] = IntersectAABB(ray, child[0]->aabbMax, child[0]->aabbMax);
-			dist[1] = IntersectAABB(ray, child[1]->aabbMax, child[1]->aabbMax);
-			dist[2] = IntersectAABB(ray, child[2]->aabbMax, child[2]->aabbMax);
-			dist[3] = IntersectAABB(ray, child[3]->aabbMax, child[3]->aabbMax);
-			dist[4] = IntersectAABB(ray, child[4]->aabbMax, child[4]->aabbMax);
-			dist[5] = IntersectAABB(ray, child[5]->aabbMax, child[5]->aabbMax);
-			dist[6] = IntersectAABB(ray, child[6]->aabbMax, child[6]->aabbMax);
-			dist[7] = IntersectAABB(ray, child[7]->aabbMax, child[7]->aabbMax);
+			dist[0] = IntersectAABB(ray, child[0]->aabbMin, child[0]->aabbMax);
+			dist[1] = IntersectAABB(ray, child[1]->aabbMin, child[1]->aabbMax);
+			dist[2] = IntersectAABB(ray, child[2]->aabbMin, child[2]->aabbMax);
+			dist[3] = IntersectAABB(ray, child[3]->aabbMin, child[3]->aabbMax);
+			dist[4] = IntersectAABB(ray, child[4]->aabbMin, child[4]->aabbMax);
+			dist[5] = IntersectAABB(ray, child[5]->aabbMin, child[5]->aabbMax);
+			dist[6] = IntersectAABB(ray, child[6]->aabbMin, child[6]->aabbMax);
+			dist[7] = IntersectAABB(ray, child[7]->aabbMin, child[7]->aabbMax);
 			(*intersectionTests) += 8;
 
 			for (int i = 0; i < 8; i++) for (int j = 0; j < 8; j++)
