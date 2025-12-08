@@ -53,7 +53,7 @@ public:
 			{
 				Tri& triangle = tri[triIdx[node.leftFirst + i]];
 				float candidatePos = triangle.centroid[axis];
-				float cost = 100; // EvaluateSAH(node, axis, candidatePos);
+				float cost = 6000; //EvaluateSAH(node, axis, candidatePos);
 				if (cost < bestCost)
 				{
 					splitPos[axis] = candidatePos, bestCost = cost;
@@ -77,14 +77,14 @@ public:
 		ArrangeTriangles(node, splitPos, leftFirstArray, 7);
 		ArrangeTriangles(node, splitPos, leftFirstArray, 8);
 
-		// abort split if at least 4 octants are empty
+		// abort split if at least 6 octants are empty
 		int emptyCount = 0;
 		if (leftFirstArray[1] - node.triCount == 0) emptyCount++;
 		for (int i = 2; i <= 8; i++)
 		{
 			if (leftFirstArray[i] - leftFirstArray[i - 1] == 0) emptyCount++;
 		}
-		if (emptyCount >= 4) return;
+		if (emptyCount >= 6) return;
 
 		// Create child nodes
 		int firstChildIdx = nodesUsed++;
