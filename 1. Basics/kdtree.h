@@ -7,7 +7,7 @@ class KDTree : public Accel
 {
 public:
 	KDTree() = default;
-	KDTree(const char* objFile, uint* objIdxTracker, const float scale = 1) : Accel(objFile, objIdxTracker, scale) {}
+	KDTree(const char* objFile, uint* objIdxTracker, const float scale = 1, float3 offset = 0) : Accel(objFile, objIdxTracker, scale, offset) {}
 	void KDTree::Build()
 	{
 		for (uint i = 0; i < triCount; i++) 
@@ -40,13 +40,9 @@ public:
 
 	void KDTree::Intersect(Ray& ray, uint nodeIdx, int* intersectionTests, int* traversalSteps)
 	{
-		Node* node = &nodes[nodeIdx], * stack[64];
+		Node* node = &nodes[nodeIdx], * stack[128];
 		uint stackPtr = 0;
-		if (nodeIdx == rootNodeIdx) // first intersect, transform
-		{
-			ray.O = TransformPosition(ray.O, invM);
-			ray.D = TransformVector(ray.D, invM);
-		}
+
 		(*intersectionTests)++;
 		(*traversalSteps)++;
 		if (IntersectAABB(ray, node->aabbMin, node->aabbMax) == 1e30f) return;
@@ -65,8 +61,8 @@ public:
 			Node* child1 = &nodes[node->leftFirst];
 			Node* child2 = &nodes[node->leftFirst + 1];
 
-			float dist1 = IntersectAABB(ray, child1->aabbMax, child1->aabbMax);
-			float dist2 = IntersectAABB(ray, child2->aabbMax, child2->aabbMax);
+			float dist1 = IntersectAABB(ray, child1->aabbMin, child1->aabbMax);
+			float dist2 = IntersectAABB(ray, child2->aabbMin, child2->aabbMax);
 			(*intersectionTests)++;
 			(*intersectionTests)++;
 
@@ -81,11 +77,6 @@ public:
 				(*traversalSteps)++;
 				if (dist2 != 1e30f) stack[stackPtr++] = child2;
 			}
-		}
-		if (nodeIdx == rootNodeIdx) // transform back
-		{
-			ray.O = TransformPosition(ray.O, M);
-			ray.D = TransformVector(ray.D, M);
 		}
 	}
 
@@ -122,6 +113,7 @@ public:
 		}
 		// handle edge case where triangle n's centroid is outside voxel, but n+1 has vertex inside
 		int rightFirst = 0, leftCount = 0;
+		int sfe = 0;
 		for (int l = node.leftFirst; l < node.leftFirst + node.triCount; l++) 
 		{
 			if (P[tri[triIdx[l]].vertexIdx0][axis] < splitPos ||
@@ -132,6 +124,7 @@ public:
 					P[tri[triIdx[l]].vertexIdx1][axis] >= splitPos ||
 					P[tri[triIdx[l]].vertexIdx2][axis] >= splitPos) rightFirst = l;
 			}
+			sfe++;
 		}
 
 		// abort split if one of the sides is empty or if every triangle intersects both sides

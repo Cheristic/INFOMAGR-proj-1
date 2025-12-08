@@ -55,29 +55,35 @@ namespace Tmpl8 {
 				objIdx = currIdx;
 				kdtree = KDTree("../assets/teapot.obj",&objIdx, 1);
 				kdtree.Build();
-				//objIdx = currIdx;
+				objIdx = currIdx;
 				oct = Octree("../assets/teapot.obj", &objIdx, 1);
 				oct.Build();
 
-				bvh.M = mat4::Translate(-0.25f, 0, 2) * mat4::RotateX(PI / 4);
-				bvh.invM = bvh.M.Inverted();
+				//bvh.M = mat4::Translate(-0.25f, 0, 2) * mat4::RotateX(PI / 4);
+				//bvh.invM = bvh.M.Inverted();
 			}
 			else if (SceneIdx == 1)
 			{
 				int currIdx = objIdx;
-				bvh = BVH("../assets/teapot.obj", &objIdx, 1);
+				bvh = BVH("../assets/teapot.obj", &objIdx, 1, float3(-.5, .2, .3));
 				bvh.Build();
 				objIdx = currIdx;
-				kdtree = KDTree("../assets/teapot.obj", &objIdx, 1);
+				kdtree = KDTree("../assets/teapot.obj", &objIdx, 1, float3(-.5, .2, .3));
 				kdtree.Build();
+				objIdx = currIdx;
+				oct = Octree("../assets/teapot.obj", &objIdx, 1, float3(-.5, .2, .3));
+				oct.Build();
 
 				firstAccel2_objIdx = objIdx;
 
-				bvh2 = BVH("../assets/teapot.obj", &objIdx, 1);
+				bvh2 = BVH("../assets/teapot.obj", &objIdx, 1, float3(.5, 0, -.1));
 				bvh2.Build();
 				objIdx = firstAccel2_objIdx;
-				kdtree2 = KDTree("../assets/teapot.obj", &objIdx, 1);
+				kdtree2 = KDTree("../assets/teapot.obj", &objIdx, 1, float3(.5, 0, -.1));
 				kdtree2.Build();
+				objIdx = firstAccel2_objIdx;
+				oct = Octree("../assets/teapot.obj", &objIdx, 1, float3(.5, 0, -.1));
+				oct.Build();
 			}
 
 
@@ -212,21 +218,27 @@ namespace Tmpl8 {
 			if (maskedT.m128_f32[1] > 0) ray.t = maskedT.m128_f32[1], ray.objIdx = 0;
 			if (maskedT.m128_f32[0] > 0) ray.t = maskedT.m128_f32[0], ray.objIdx = 0;
 
+			if (!accelStruct) return;
 			if (SceneIdx == 0) 
 			{
-				if (accelStruct && accelStructType == 0) bvh.Intersect(ray, bvh.rootNodeIdx, &intersectionTests, &traversalSteps);
-				else if (accelStruct && accelStructType == 1) kdtree.Intersect(ray, kdtree.rootNodeIdx, &intersectionTests, &traversalSteps);
-				else if (accelStruct && accelStructType == 2) oct.Intersect(ray, oct.rootNodeIdx, &intersectionTests, &traversalSteps);
+				if (accelStructType == 0) bvh.Intersect(ray, bvh.rootNodeIdx, &intersectionTests, &traversalSteps);
+				else if (accelStructType == 1) kdtree.Intersect(ray, kdtree.rootNodeIdx, &intersectionTests, &traversalSteps);
+				else if (accelStructType == 2) oct.Intersect(ray, oct.rootNodeIdx, &intersectionTests, &traversalSteps);
 			}
 			else if (SceneIdx == 1) 
 			{
-				if (accelStruct)
+				
+				if (accelStructType == 0)
 				{
 					bvh.Intersect(ray, bvh.rootNodeIdx, &intersectionTests, &traversalSteps); bvh2.Intersect(ray, bvh2.rootNodeIdx, &intersectionTests, &traversalSteps);
 				}
-				else
+				else if (accelStructType == 1)
 				{
 					kdtree.Intersect(ray, kdtree.rootNodeIdx, &intersectionTests, &traversalSteps); kdtree2.Intersect(ray, kdtree2.rootNodeIdx, &intersectionTests, &traversalSteps);
+				}
+				else if (accelStructType == 2) {
+					oct.Intersect(ray, oct.rootNodeIdx, &intersectionTests, &traversalSteps); oct2.Intersect(ray, oct2.rootNodeIdx, &intersectionTests, &traversalSteps);
+
 				}
 			}
 
@@ -242,7 +254,7 @@ namespace Tmpl8 {
 			// we get the normal after finding the nearest intersection:
 			// this way we prevent calculating it multiple times.
 			if (objIdx == -1) return float3(0); // or perhaps we should just crash
-			float3 N;
+			float3 N = 0;
 			if (objIdx == 0) N = lights[0].GetNormal(I); // they're all oriented the same
 
 			if (SceneIdx == 0) {
@@ -251,20 +263,24 @@ namespace Tmpl8 {
 					N = float3(0);
 					N[(objIdx - 4) / 2] = 1 - 2 * (float)(objIdx & 1);
 				}
-				else
+				else if (accelStruct)
 				{
-					if (accelStruct) N = bvh.GetNormal(objIdx);
-					else N = kdtree.GetNormal(objIdx);
+					if (accelStructType == 0) N = bvh.GetNormal(objIdx);
+					else if (accelStructType == 1) N = kdtree.GetNormal(objIdx);
+					else N = oct.GetNormal(objIdx);
 				}
 			}
 			else if (SceneIdx == 1) {
+				if (!accelStruct) return N;
 				if (objIdx < firstAccel2_objIdx) {
-					if (accelStruct) N = bvh.GetNormal(objIdx);
-					else N = kdtree.GetNormal(objIdx);
+					if (accelStructType == 0) N = bvh.GetNormal(objIdx);
+					else if (accelStructType == 1) N = kdtree.GetNormal(objIdx);
+					else N = oct.GetNormal(objIdx);
 				}
 				else {
-					if (accelStruct) N = bvh2.GetNormal(objIdx);
-					else N = kdtree2.GetNormal(objIdx);
+					if (accelStructType == 0) N = bvh2.GetNormal(objIdx);
+					else if (accelStructType == 1) N = kdtree2.GetNormal(objIdx);
+					else N = oct2.GetNormal(objIdx);
 				}
 			}
 			
@@ -278,18 +294,26 @@ namespace Tmpl8 {
 
 			if (SceneIdx == 0) {
 				if (objIdx >= 4 && objIdx <= 9) return plane[objIdx - 4].GetAlbedo(I);
-				else if (accelStruct) return bvh.GetAlbedo();
-				else return kdtree.GetAlbedo();
+				if (!accelStruct) return 0;
+
+				if (accelStructType == 0) return bvh.GetAlbedo();
+				else if (accelStructType == 1) return kdtree.GetAlbedo();
+				else return oct.GetAlbedo();
 			}
 			else if (SceneIdx == 1) {
+				if (!accelStruct) return 0;
+
 				if (objIdx < firstAccel2_objIdx) {
-					if (accelStruct) return bvh.GetAlbedo();
-					else return kdtree.GetAlbedo();
+					if (accelStructType == 0) return bvh.GetAlbedo();
+					else if (accelStructType == 1) return kdtree.GetAlbedo();
+					else return oct.GetAlbedo();
 				}
 				else {
-					if (accelStruct) return bvh2.GetAlbedo();
-					else return kdtree2.GetAlbedo();
+					if (accelStructType == 0) return bvh2.GetAlbedo();
+					else if (accelStructType == 1) return kdtree2.GetAlbedo();
+					else return oct2.GetAlbedo();
 				}
+				
 			}
 			return 0;
 		}
@@ -335,6 +359,8 @@ namespace Tmpl8 {
 		int firstAccel2_objIdx = -1;
 		BVH bvh2;
 		KDTree kdtree2;
+		Octree oct2;
+
 
 		int SceneIdx = 0;
 

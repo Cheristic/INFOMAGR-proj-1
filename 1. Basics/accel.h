@@ -9,12 +9,11 @@ namespace Tmpl8 {
 	{
 	public:
 		Accel() = default;
-		Accel(const char * objFile, uint* objIdxTracker, const float scale = 1, mat4 transform = mat4::Identity())
+		Accel(const char * objFile, uint* objIdxTracker, const float scale = 1, float3 offset = float3(0))
 		{
 			FILE* file = fopen(objFile, "r");
 			tri = new Tri[MAX_TRIS];
 			N = new float3[MAX_TRIS], P = new float3[MAX_TRIS];
-			M = transform, invM = transform.FastInvertedTransformNoScale();
 
 			int Ns = 0, Ps = 0, a, b, c, d, e, f, g, h, i;
 			if (!file) return; // file doesn't exist
@@ -24,8 +23,10 @@ namespace Tmpl8 {
 				fgets(line, 511, file);
 				if (line == strstr(line, "vn "))
 					sscanf(line + 3, "%f %f %f", &N[Ns].x, &N[Ns].y, &N[Ns].z), Ns++;
-				else if (line[0] == 'v')
-					sscanf(line + 2, "%f %f %f", &P[Ps].x, &P[Ps].y, &P[Ps].z), Ps++;
+				else if (line[0] == 'v') {
+					sscanf(line + 2, "%f %f %f", &P[Ps].x, &P[Ps].y, &P[Ps].z);
+					P[Ps].x += offset.x, P[Ps].y += offset.y, P[Ps].z += offset.z, Ps++;
+				}
 				if (line[0] != 'f') continue; else
 					sscanf(line + 2, "%i/%i/%i %i/%i/%i %i/%i/%i",
 						&a, &b, &c, &d, &e, &f, &g, &h, &i);
@@ -43,7 +44,7 @@ namespace Tmpl8 {
 		}
 		void Build();
 		void Subdivide(uint nodeIdx);
-		void Intersect(Ray& ray, uint nodeIdx);
+		void Intersect(Ray& ray, uint nodeIdx, int* intersectionTests, int* traversalSteps);
 
 		float3 GetAlbedo() const
 		{
@@ -123,6 +124,5 @@ namespace Tmpl8 {
 		int rootNodeIdx = 0, nodesUsed = 1;
 		uint triCount = 0;
 		float3* P = 0, * N = 0;
-		mat4 M, invM;
 	};
 }

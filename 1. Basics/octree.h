@@ -9,7 +9,7 @@ class Octree : public Accel
 {
 public:
 	Octree() = default;
-	Octree(const char* objFile, uint* objIdxTracker, const float scale = 1) : Accel(objFile, objIdxTracker, scale) {}
+	Octree(const char* objFile, uint* objIdxTracker, const float scale = 1, float3 offset = 0) : Accel(objFile, objIdxTracker, scale, offset) {}
 
 	void Octree::Build()
 	{
@@ -118,11 +118,7 @@ public:
 	{
 		Node* node = &nodes[nodeIdx], * stack[64];
 		uint stackPtr = 0;
-		if (nodeIdx == rootNodeIdx) // first intersect, transform
-		{
-			ray.O = TransformPosition(ray.O, invM);
-			ray.D = TransformVector(ray.D, invM);
-		}
+
 		(*intersectionTests)++;
 		(*traversalSteps)++;
 		if (IntersectAABB(ray, node->aabbMin, node->aabbMax) == 1e30f) return;
@@ -182,11 +178,7 @@ public:
 
 			}
 		}
-		if (nodeIdx == rootNodeIdx) // transform back
-		{
-			ray.O = TransformPosition(ray.O, M);
-			ray.D = TransformVector(ray.D, M);
-		}
+
 	}
 
 	void Octree::ArrangeTriangles(const Node& node, float3 splitPos, int (&leftFirstArray)[9], uint octant)

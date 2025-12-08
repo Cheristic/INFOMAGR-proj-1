@@ -8,7 +8,7 @@ class BVH : public Accel
 {
 public:
 	BVH() = default;
-	BVH(const char* objFile, uint* objIdxTracker, const float scale = 1) : Accel(objFile, objIdxTracker, scale) {}
+	BVH(const char* objFile, uint* objIdxTracker, const float scale = 1, float3 offset = 0) : Accel(objFile, objIdxTracker, scale, offset) {}
 	void BVH::Build() 
 	{
 		for (uint i = 0; i < triCount; i++) {
@@ -28,11 +28,7 @@ public:
 	{
 		Node* node = &nodes[nodeIdx], * stack[64];
 		uint stackPtr = 0;
-		if (nodeIdx == rootNodeIdx) // first intersect, transform
-		{
-			ray.O = TransformPosition(ray.O, invM);
-			ray.D = TransformVector(ray.D, invM);
-		}
+
 		(*intersectionTests)++;
 		(*traversalSteps)++;
 		if (IntersectAABB(ray, node->aabbMin, node->aabbMax) == 1e30f) return;
@@ -48,11 +44,12 @@ public:
 				if (stackPtr == 0) break; else node = stack[--stackPtr];
 				continue;
 			}
+
 			Node* child1 = &nodes[node->leftFirst];
 			Node* child2 = &nodes[node->leftFirst + 1];
 
-			float dist1 = IntersectAABB(ray, child1->aabbMax, child1->aabbMax);
-			float dist2 = IntersectAABB(ray, child2->aabbMax, child2->aabbMax);
+			float dist1 = IntersectAABB(ray, child1->aabbMin, child1->aabbMax);
+			float dist2 = IntersectAABB(ray, child2->aabbMin, child2->aabbMax);
 			(*intersectionTests)++;
 			(*intersectionTests)++;
 
@@ -68,11 +65,7 @@ public:
 				if (dist2 != 1e30f) stack[stackPtr++] = child2;
 			}
 		}
-		if (nodeIdx == rootNodeIdx) // transform back
-		{
-			ray.O = TransformPosition(ray.O, M);
-			ray.D = TransformVector(ray.D, M);
-		}
+
 	}
 	void BVH::Subdivide(uint nodeIdx)
 	{
@@ -119,6 +112,7 @@ public:
 		node.triCount = 0;
 		UpdateNodeBounds(leftChildIdx);
 		UpdateNodeBounds(rightChildIdx);
+
 		// recurse
 		Subdivide(leftChildIdx);
 		Subdivide(rightChildIdx);

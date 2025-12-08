@@ -80,7 +80,6 @@ void Renderer::Tick( float deltaTime )
 	if (animating) scene.SetTime( anim_time += deltaTime * 0.002f );
 	// pixel loop
 	Timer t;
-	int blacks = 0;
 
 	// lines are executed as OpenMP parallel tasks (disabled in DEBUG)
 #pragma omp parallel for schedule(dynamic)
@@ -91,12 +90,6 @@ void Renderer::Tick( float deltaTime )
 		{
 			float4 pixel = float4(Trace(camera->GetPrimaryRay((float)x, (float)y)), 0);
 			// translate accumulator contents to rgb32 pixels
-			if (pixel.x == 0 && pixel.y == 0 && pixel.z == 0) {
-				blacks++;
-			}
-			else {
-				//cout << pixel.x << " " << pixel.y << " " << pixel.z << "\n";
-			}
 			if (!heatMap)
 			{
 				screen->pixels[x + y * SCRWIDTH] = RGBF32_to_RGB8(&pixel);
@@ -115,7 +108,6 @@ void Renderer::Tick( float deltaTime )
 			scene.traversalSteps = 0;
 		}
 	}
-	cout << "blacks = " << blacks / (640*1024.0) << "\n";
 
 	// performance report - running average - ms, MRays/s
 	static float avg = 10, alpha = 1;
