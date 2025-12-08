@@ -28,6 +28,13 @@ public:
 	Camera* camera;
 	bool animating = true;
 	float anim_time = 0;
+	bool heatMap;
+	bool intersectionHeatMap;
+	// color functions
+	float remap(float x, float inMin, float inMax, float outMin, float outMax);
+	float3 remapToGreenRed();
+	uint createRGB(int r, int g, int b);
+
 };
 
 } // namespace Tmpl8

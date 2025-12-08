@@ -1,4 +1,32 @@
+#include <string>
 #include "precomp.h"
+
+float Renderer::remap(float x, float inMin, float inMax, float outMin, float outMax)
+{
+	float t = (x - inMin) / (inMax - inMin);
+	return outMin + (outMax - outMin) * t;
+}
+
+float3 Renderer::remapToGreenRed()
+{
+	float3 red(1, 0, 0), green(0, 0.8, 0);
+
+	// Realistically, one ray isn't intersecting more than 80 objects (checked outputs)
+	float maxIntersections = (intersectionHeatMap) ? scene.maxIntersectionTests : scene.maxTraversalSteps; // sizeof(BVHNode)* N * 2 + 1;
+	float minIntersections = 0.0f;
+	float value = (intersectionHeatMap) ? scene.intersectionTests : scene.traversalSteps;
+	float a = remap(value, minIntersections, maxIntersections, 0.0f, 1.0f);
+
+	float3 color = red * a + green * (1.0f - a);
+	return color * 255;
+}
+
+
+uint Renderer::createRGB(int r, int g, int b)
+{
+	return ((r & 0xff) << 16) + ((g & 0xff) << 8) + (b & 0xff);
+}
+
 
 // -----------------------------------------------------------
 // Initialize the renderer
@@ -69,8 +97,22 @@ void Renderer::Tick( float deltaTime )
 			else {
 				//cout << pixel.x << " " << pixel.y << " " << pixel.z << "\n";
 			}
-			screen->pixels[x + y * SCRWIDTH] = RGBF32_to_RGB8( &pixel );
-			accumulator[x + y * SCRWIDTH] = pixel;
+			if (!heatMap)
+			{
+				screen->pixels[x + y * SCRWIDTH] = RGBF32_to_RGB8(&pixel);
+				accumulator[x + y * SCRWIDTH] = pixel;
+			}
+			else
+			{
+				float3 finalColor = remapToGreenRed();
+				float4 v(finalColor.x, finalColor.y, finalColor.z, 1.0f);
+				screen->pixels[x + y * SCRWIDTH] = createRGB(finalColor.x, finalColor.y, finalColor.z);
+				accumulator[x + y * SCRWIDTH] = v;
+			}
+			scene.maxIntersectionTests = max(scene.maxIntersectionTests, scene.intersectionTests);
+			scene.maxTraversalSteps = max(scene.maxTraversalSteps, scene.traversalSteps);
+			scene.intersectionTests = 0;
+			scene.traversalSteps = 0;
 		}
 	}
 	cout << "blacks = " << blacks / (640*1024.0) << "\n";
@@ -92,7 +134,62 @@ void Renderer::UI()
 {
 	// animation toggle
 	ImGui::Checkbox( "Animate scene", &animating );
-	ImGui::Checkbox("Acceleration structure", &scene.useBVH);
+	ImGui::Checkbox("Acceleration structure", &scene.accelStruct);
+	ImGui::Checkbox("Heat Map", &heatMap); ImGui::SameLine();
+	const char* items[] = { "Intersection Tests", "Traversal Steps"};
+	static int item_selected_idx = 0; // Here we store our selection data as an index.
+
+	intersectionHeatMap = !item_selected_idx;
+
+	// Pass in the preview value visible before opening the combo (it could technically be different contents or not pulled from items[])
+	const char* combo_preview_value = items[item_selected_idx];
+	if (ImGui::BeginCombo("", combo_preview_value))
+	{
+		for (int n = 0; n < IM_ARRAYSIZE(items); n++)
+		{
+			const bool is_selected = (item_selected_idx == n);
+			if (ImGui::Selectable(items[n], is_selected))
+				item_selected_idx = n;
+
+			// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+			if (is_selected)
+				ImGui::SetItemDefaultFocus();
+		}
+		ImGui::EndCombo();
+	}
+
+	static int e = 0;
+	ImGui::RadioButton("BVH", &e, 0); ImGui::SameLine();
+	ImGui::RadioButton("kD-tree", &e, 1); ImGui::SameLine();
+	ImGui::RadioButton("Octree", &e, 2);
+
+	scene.accelStructType = e;
+
+	static int f = 0;
+	static int fOld = f;
+	ImGui::RadioButton("Scene 1", &f, 0); ImGui::SameLine();
+	ImGui::RadioButton("Scene 2", &f, 1);
+
+	static int g = 0;
+	static int gOld = 0;
+	ImGui::RadioButton("CamPos 1", &g, 0); ImGui::SameLine();
+	ImGui::RadioButton("CamPos 2", &g, 1); ImGui::SameLine();
+	ImGui::RadioButton("CamPos 3", &g, 2);
+
+	scene.SceneIdx = f;
+	if (gOld != g)
+	{
+		camera->camPos = scene.GetCameraPos(g);
+		camera->camTarget = scene.GetCameraTarget(g);
+		camera->Update();
+		scene.maxIntersectionTests = 0;
+		scene.maxTraversalSteps = 0;
+	}
+	gOld = g;
+
+	ImGui::LabelText(std::to_string(scene.maxIntersectionTests).c_str(), "Max # intersection tests:");
+	ImGui::LabelText(std::to_string(scene.maxTraversalSteps).c_str(), "Max # Traversal steps:");
+	
 	// ray query on mouse
 	Ray r = camera->GetPrimaryRay( (float)mousePos.x, (float)mousePos.y );
 	//scene.FindNearest( r );

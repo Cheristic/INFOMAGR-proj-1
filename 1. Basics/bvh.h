@@ -24,27 +24,50 @@ public:
 		// subdivide recursively
 		Subdivide(rootNodeIdx);
 	}
-	void BVH::Intersect(Ray& ray, uint nodeIdx)
+	void BVH::Intersect(Ray& ray, uint nodeIdx, int* intersectionTests, int* traversalSteps)
 	{
-		Node& node = nodes[nodeIdx];
+		Node* node = &nodes[nodeIdx], * stack[64];
+		uint stackPtr = 0;
 		if (nodeIdx == rootNodeIdx) // first intersect, transform
 		{
 			ray.O = TransformPosition(ray.O, invM);
 			ray.D = TransformVector(ray.D, invM);
 		}
-
-		if (IntersectAABB(ray, node.aabbMin, node.aabbMax) == 1e30f) return;
-		if (node.isLeaf())
+		(*intersectionTests)++;
+		(*traversalSteps)++;
+		if (IntersectAABB(ray, node->aabbMin, node->aabbMax) == 1e30f) return;
+		while (1)
 		{
-			for (uint i = 0; i < node.triCount; i++)
-				IntersectTri(ray, tri[triIdx[node.leftFirst + i]]);
-		}
-		else
-		{
-			Intersect(ray, node.leftFirst);
-			Intersect(ray, node.leftFirst + 1);
-		}
+			if (node->isLeaf())
+			{
+				for (uint i = 0; i < node->triCount; i++)
+				{
+					IntersectTri(ray, tri[triIdx[node->leftFirst + i]]);
+					(*intersectionTests)++;
+				}
+				if (stackPtr == 0) break; else node = stack[--stackPtr];
+				continue;
+			}
+			Node* child1 = &nodes[node->leftFirst];
+			Node* child2 = &nodes[node->leftFirst + 1];
 
+			float dist1 = IntersectAABB(ray, child1->aabbMax, child1->aabbMax);
+			float dist2 = IntersectAABB(ray, child2->aabbMax, child2->aabbMax);
+			(*intersectionTests)++;
+			(*intersectionTests)++;
+
+			if (dist1 > dist2) { swap(dist1, dist2); swap(child1, child2); }
+			if (dist1 == 1e30f)
+			{
+				if (stackPtr == 0) break; else node = stack[--stackPtr];
+			}
+			else
+			{
+				node = child1;
+				(*traversalSteps)++;
+				if (dist2 != 1e30f) stack[stackPtr++] = child2;
+			}
+		}
 		if (nodeIdx == rootNodeIdx) // transform back
 		{
 			ray.O = TransformPosition(ray.O, M);

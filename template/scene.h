@@ -2,6 +2,7 @@
 #include "objects.h"
 #include "bvh.h"
 #include "kdtree.h"
+#include "octree.h"
 
 // -----------------------------------------------------------
 // scene.h
@@ -54,6 +55,9 @@ namespace Tmpl8 {
 				objIdx = currIdx;
 				kdtree = KDTree("../assets/teapot.obj",&objIdx, 1);
 				kdtree.Build();
+				//objIdx = currIdx;
+				oct = Octree("../assets/teapot.obj", &objIdx, 1);
+				oct.Build();
 
 				bvh.M = mat4::Translate(-0.25f, 0, 2) * mat4::RotateX(PI / 4);
 				bvh.invM = bvh.M.Inverted();
@@ -69,11 +73,11 @@ namespace Tmpl8 {
 
 				firstAccel2_objIdx = objIdx;
 
-				bvh = BVH("../assets/teapot.obj", &objIdx, 1);
-				bvh.Build();
+				bvh2 = BVH("../assets/teapot.obj", &objIdx, 1);
+				bvh2.Build();
 				objIdx = firstAccel2_objIdx;
-				kdtree = KDTree("../assets/teapot.obj", &objIdx, 1);
-				kdtree.Build();
+				kdtree2 = KDTree("../assets/teapot.obj", &objIdx, 1);
+				kdtree2.Build();
 			}
 
 
@@ -208,18 +212,21 @@ namespace Tmpl8 {
 			if (maskedT.m128_f32[1] > 0) ray.t = maskedT.m128_f32[1], ray.objIdx = 0;
 			if (maskedT.m128_f32[0] > 0) ray.t = maskedT.m128_f32[0], ray.objIdx = 0;
 
-			if (SceneIdx == 0) {
-				if (useBVH) bvh.Intersect(ray, bvh.rootNodeIdx);
-				else kdtree.Intersect(ray, kdtree.rootNodeIdx);
+			if (SceneIdx == 0) 
+			{
+				if (accelStruct && accelStructType == 0) bvh.Intersect(ray, bvh.rootNodeIdx, &intersectionTests, &traversalSteps);
+				else if (accelStruct && accelStructType == 1) kdtree.Intersect(ray, kdtree.rootNodeIdx, &intersectionTests, &traversalSteps);
+				else if (accelStruct && accelStructType == 2) oct.Intersect(ray, oct.rootNodeIdx, &intersectionTests, &traversalSteps);
 			}
-			else if (SceneIdx == 1) {
-				if (useBVH)
+			else if (SceneIdx == 1) 
+			{
+				if (accelStruct)
 				{
-					bvh.Intersect(ray, bvh.rootNodeIdx); bvh2.Intersect(ray, bvh2.rootNodeIdx);
+					bvh.Intersect(ray, bvh.rootNodeIdx, &intersectionTests, &traversalSteps); bvh2.Intersect(ray, bvh2.rootNodeIdx, &intersectionTests, &traversalSteps);
 				}
 				else
 				{
-					kdtree.Intersect(ray, kdtree.rootNodeIdx); kdtree2.Intersect(ray, kdtree2.rootNodeIdx);
+					kdtree.Intersect(ray, kdtree.rootNodeIdx, &intersectionTests, &traversalSteps); kdtree2.Intersect(ray, kdtree2.rootNodeIdx, &intersectionTests, &traversalSteps);
 				}
 			}
 
@@ -246,17 +253,17 @@ namespace Tmpl8 {
 				}
 				else
 				{
-					if (useBVH) N = bvh.GetNormal(objIdx);
+					if (accelStruct) N = bvh.GetNormal(objIdx);
 					else N = kdtree.GetNormal(objIdx);
 				}
 			}
 			else if (SceneIdx == 1) {
 				if (objIdx < firstAccel2_objIdx) {
-					if (useBVH) N = bvh.GetNormal(objIdx);
+					if (accelStruct) N = bvh.GetNormal(objIdx);
 					else N = kdtree.GetNormal(objIdx);
 				}
 				else {
-					if (useBVH) N = bvh2.GetNormal(objIdx);
+					if (accelStruct) N = bvh2.GetNormal(objIdx);
 					else N = kdtree2.GetNormal(objIdx);
 				}
 			}
@@ -271,16 +278,16 @@ namespace Tmpl8 {
 
 			if (SceneIdx == 0) {
 				if (objIdx >= 4 && objIdx <= 9) return plane[objIdx - 4].GetAlbedo(I);
-				else if (useBVH) return bvh.GetAlbedo();
+				else if (accelStruct) return bvh.GetAlbedo();
 				else return kdtree.GetAlbedo();
 			}
 			else if (SceneIdx == 1) {
 				if (objIdx < firstAccel2_objIdx) {
-					if (useBVH) return bvh.GetAlbedo();
+					if (accelStruct) return bvh.GetAlbedo();
 					else return kdtree.GetAlbedo();
 				}
 				else {
-					if (useBVH) return bvh2.GetAlbedo();
+					if (accelStruct) return bvh2.GetAlbedo();
 					else return kdtree2.GetAlbedo();
 				}
 			}
@@ -291,6 +298,8 @@ namespace Tmpl8 {
 			if (SceneIdx == 0) 
 			{
 				if (posIdx == 0) return float3(0, 0, -2);
+				else if (posIdx == 1) return float3(1, 0, -2);
+				else if (posIdx == 2) return float3(1.5f, 0, 3);
 			}
 			else if (SceneIdx == 1) {
 				if (posIdx == 0) return float3(0, 0, -2);
@@ -302,6 +311,8 @@ namespace Tmpl8 {
 			if (SceneIdx == 0)
 			{
 				if (posIdx == 0) return float3(0, 0, -1);
+				else if (posIdx == 1) return float3(0, 0, -1);
+				else if (posIdx == 2) return float3(-1.5f, 0, -1.5f);
 			}
 			else if (SceneIdx == 1) {
 				if (posIdx == 0) return float3(0, 0, -1);
@@ -315,14 +326,21 @@ namespace Tmpl8 {
 		Quad lights[4];
 		Plane plane[6];
 
-		bool useBVH = true;
+		bool accelStruct = true;
+		int accelStructType = 0;
 		BVH bvh;
 		KDTree kdtree;
+		Octree oct;
 
 		int firstAccel2_objIdx = -1;
 		BVH bvh2;
 		KDTree kdtree2;
 
 		int SceneIdx = 0;
+
+		int intersectionTests = 0;
+		int maxIntersectionTests = 0;
+		int traversalSteps = 0;
+		int maxTraversalSteps = 0;
 	};
 }
