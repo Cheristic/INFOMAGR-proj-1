@@ -198,25 +198,27 @@ namespace Tmpl8 {
 				/* first: unconditional */  ray.t = t4.m128_f32[0], ray.objIdx = idx4.m128i_i32[0];
 				if (t4.m128_f32[1] < ray.t) ray.t = t4.m128_f32[1], ray.objIdx = idx4.m128i_i32[1];
 				if (t4.m128_f32[2] < ray.t) ray.t = t4.m128_f32[2], ray.objIdx = idx4.m128i_i32[2];
+
+				// efficient four-quad intersection by Jesse Vrooman
+				const __m128 t = _mm_div_ps(_mm_add_ps(_mm_set1_ps(ray.O.y),
+					_mm_set1_ps(-1.5)), _mm_xor_ps(_mm_set1_ps(ray.D.y), _mm_set1_ps(-0.0)));
+				const __m128 Ix = _mm_add_ps(_mm_add_ps(_mm_set1_ps(ray.O.x),
+					_mm_set_ps(1, -1, -1, 1)), _mm_mul_ps(t, _mm_set1_ps(ray.D.x)));
+				const __m128 Iz = _mm_add_ps(_mm_add_ps(_mm_set1_ps(ray.O.z),
+					_mm_set_ps(1, 1, -1, -1)), _mm_mul_ps(t, _mm_set1_ps(ray.D.z)));
+				const static __m128 size = _mm_set1_ps(0.25f);
+				const static __m128 nsize = _mm_xor_ps(_mm_set1_ps(0.25f), _mm_set1_ps(-0.0));
+				const __m128 maskedT = _mm_and_ps(t, _mm_and_ps(
+					_mm_and_ps(_mm_cmpgt_ps(Ix, nsize), _mm_cmplt_ps(Ix, size)),
+					_mm_and_ps(_mm_cmpgt_ps(Iz, nsize), _mm_cmplt_ps(Iz, size))));
+				if (maskedT.m128_f32[3] > 0) ray.t = maskedT.m128_f32[3], ray.objIdx = 0;
+				if (maskedT.m128_f32[2] > 0) ray.t = maskedT.m128_f32[2], ray.objIdx = 0;
+				if (maskedT.m128_f32[1] > 0) ray.t = maskedT.m128_f32[1], ray.objIdx = 0;
+				if (maskedT.m128_f32[0] > 0) ray.t = maskedT.m128_f32[0], ray.objIdx = 0;
 			}
 
 
-			// efficient four-quad intersection by Jesse Vrooman
-			const __m128 t = _mm_div_ps(_mm_add_ps(_mm_set1_ps(ray.O.y),
-				_mm_set1_ps(-1.5)), _mm_xor_ps(_mm_set1_ps(ray.D.y), _mm_set1_ps(-0.0)));
-			const __m128 Ix = _mm_add_ps(_mm_add_ps(_mm_set1_ps(ray.O.x),
-				_mm_set_ps(1, -1, -1, 1)), _mm_mul_ps(t, _mm_set1_ps(ray.D.x)));
-			const __m128 Iz = _mm_add_ps(_mm_add_ps(_mm_set1_ps(ray.O.z),
-				_mm_set_ps(1, 1, -1, -1)), _mm_mul_ps(t, _mm_set1_ps(ray.D.z)));
-			const static __m128 size = _mm_set1_ps(0.25f);
-			const static __m128 nsize = _mm_xor_ps(_mm_set1_ps(0.25f), _mm_set1_ps(-0.0));
-			const __m128 maskedT = _mm_and_ps(t, _mm_and_ps(
-				_mm_and_ps(_mm_cmpgt_ps(Ix, nsize), _mm_cmplt_ps(Ix, size)),
-				_mm_and_ps(_mm_cmpgt_ps(Iz, nsize), _mm_cmplt_ps(Iz, size))));
-			if (maskedT.m128_f32[3] > 0) ray.t = maskedT.m128_f32[3], ray.objIdx = 0;
-			if (maskedT.m128_f32[2] > 0) ray.t = maskedT.m128_f32[2], ray.objIdx = 0;
-			if (maskedT.m128_f32[1] > 0) ray.t = maskedT.m128_f32[1], ray.objIdx = 0;
-			if (maskedT.m128_f32[0] > 0) ray.t = maskedT.m128_f32[0], ray.objIdx = 0;
+			
 
 			if (!accelStruct) return;
 			if (SceneIdx == 0) 
@@ -230,15 +232,17 @@ namespace Tmpl8 {
 				
 				if (accelStructType == 0)
 				{
-					bvh.Intersect(ray, bvh.rootNodeIdx, &intersectionTests, &traversalSteps); bvh2.Intersect(ray, bvh2.rootNodeIdx, &intersectionTests, &traversalSteps);
+					bvh.Intersect(ray, bvh.rootNodeIdx, &intersectionTests, &traversalSteps); 
+					bvh2.Intersect(ray, bvh2.rootNodeIdx, &intersectionTests, &traversalSteps);
 				}
 				else if (accelStructType == 1)
 				{
-					kdtree.Intersect(ray, kdtree.rootNodeIdx, &intersectionTests, &traversalSteps); kdtree2.Intersect(ray, kdtree2.rootNodeIdx, &intersectionTests, &traversalSteps);
+					kdtree.Intersect(ray, kdtree.rootNodeIdx, &intersectionTests, &traversalSteps); 
+					kdtree2.Intersect(ray, kdtree2.rootNodeIdx, &intersectionTests, &traversalSteps);
 				}
 				else if (accelStructType == 2) {
-					oct.Intersect(ray, oct.rootNodeIdx, &intersectionTests, &traversalSteps); oct2.Intersect(ray, oct2.rootNodeIdx, &intersectionTests, &traversalSteps);
-
+					oct.Intersect(ray, oct.rootNodeIdx, &intersectionTests, &traversalSteps); 
+					oct2.Intersect(ray, oct2.rootNodeIdx, &intersectionTests, &traversalSteps);
 				}
 			}
 
@@ -327,6 +331,8 @@ namespace Tmpl8 {
 			}
 			else if (SceneIdx == 1) {
 				if (posIdx == 0) return float3(0, 0, -2);
+				if (posIdx == 1) return float3(2.93, 5.6, -7.65);
+				if (posIdx == 2) return float3(-2.50, .711, -0.018);
 			}
 			return 0;
 		}
@@ -340,6 +346,8 @@ namespace Tmpl8 {
 			}
 			else if (SceneIdx == 1) {
 				if (posIdx == 0) return float3(0, 0, -1);
+				if (posIdx == 1) return float3(2.63, 4.98, -6.94);
+				if (posIdx == 2) return float3(-1.55, .396, -.0075);
 			}
 			return 0;
 		}
@@ -362,7 +370,7 @@ namespace Tmpl8 {
 		Octree oct2;
 
 
-		int SceneIdx = 0;
+		int SceneIdx = 1;
 
 		int intersectionTests = 0;
 		int maxIntersectionTests = 0;

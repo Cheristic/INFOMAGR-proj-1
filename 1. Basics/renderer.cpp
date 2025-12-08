@@ -3,6 +3,7 @@
 
 float Renderer::remap(float x, float inMin, float inMax, float outMin, float outMax)
 {
+	x = min(max(x, inMin), inMax);
 	float t = (x - inMin) / (inMax - inMin);
 	return outMin + (outMax - outMin) * t;
 }
@@ -13,8 +14,11 @@ float3 Renderer::remapToGreenRed()
 
 	// Realistically, one ray isn't intersecting more than 80 objects (checked outputs)
 	float maxIntersections = (intersectionHeatMap) ? scene.maxIntersectionTests : scene.maxTraversalSteps; // sizeof(BVHNode)* N * 2 + 1;
+	maxIntersections = min(maxIntersections, 200.0f);
+	maxIntersections = sqrtf(maxIntersections);
 	float minIntersections = 0.0f;
 	float value = (intersectionHeatMap) ? scene.intersectionTests : scene.traversalSteps;
+	value = sqrtf(value);
 	float a = remap(value, minIntersections, maxIntersections, 0.0f, 1.0f);
 
 	float3 color = red * a + green * (1.0f - a);
@@ -46,6 +50,7 @@ float3 Renderer::Trace(Ray& ray)
 	if (ray.objIdx == -1) return 0; // or a fancy sky color
 	float3 I = ray.O + ray.t * ray.D;
 	float3 N = scene.GetNormal(ray.objIdx, I, ray.D);
+	return scene.GetAlbedo(ray.objIdx, I);
 
 	uint seed = 0;
 	uint quadIdx = scene.GetRandomLight(seed);
@@ -93,14 +98,12 @@ void Renderer::Tick( float deltaTime )
 			if (!heatMap)
 			{
 				screen->pixels[x + y * SCRWIDTH] = RGBF32_to_RGB8(&pixel);
-				accumulator[x + y * SCRWIDTH] = pixel;
 			}
 			else
 			{
 				float3 finalColor = remapToGreenRed();
 				float4 v(finalColor.x, finalColor.y, finalColor.z, 1.0f);
 				screen->pixels[x + y * SCRWIDTH] = createRGB(finalColor.x, finalColor.y, finalColor.z);
-				accumulator[x + y * SCRWIDTH] = v;
 			}
 			scene.maxIntersectionTests = max(scene.maxIntersectionTests, scene.intersectionTests);
 			scene.maxTraversalSteps = max(scene.maxTraversalSteps, scene.traversalSteps);
@@ -117,6 +120,7 @@ void Renderer::Tick( float deltaTime )
 	printf( "%5.2fms (%.1ffps) - %.1fMrays/s\n", avg, fps, rps / 1000 );
 	// handle user input
 	camera->HandleInput( deltaTime );
+	cout << camera->camPos.x << " " << camera->camPos.y << " " << camera->camPos.z << " " << camera->camTarget.x << " " << camera->camTarget.y << " " << camera->camTarget.z << "\n";
 }
 
 // -----------------------------------------------------------
@@ -150,14 +154,14 @@ void Renderer::UI()
 		ImGui::EndCombo();
 	}
 
-	static int e = 0;
+	static int e = scene.accelStructType;
 	ImGui::RadioButton("BVH", &e, 0); ImGui::SameLine();
 	ImGui::RadioButton("kD-tree", &e, 1); ImGui::SameLine();
 	ImGui::RadioButton("Octree", &e, 2);
 
 	scene.accelStructType = e;
 
-	static int f = 0;
+	static int f = scene.SceneIdx;
 	static int fOld = f;
 	ImGui::RadioButton("Scene 1", &f, 0); ImGui::SameLine();
 	ImGui::RadioButton("Scene 2", &f, 1);
